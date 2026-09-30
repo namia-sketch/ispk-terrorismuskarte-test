@@ -1238,7 +1238,20 @@ L.control.scale({ position: 'topright', imperial: false, maxWidth: 100 }).addTo(
 function initClusterGroup() {
   if (clusterGroup) map.removeLayer(clusterGroup);
   clusterGroup = L.markerClusterGroup({
-    maxClusterRadius: 40,
+    // maxClusterRadius als Funktion statt fixer Zahl: ein konstanter Pixel-Radius
+    // (z.B. 40) entspricht bei Zoom 19 immer noch ~10-12 Metern am Boden — Marker,
+    // die nur wenige Meter auseinanderliegen (aber NICHT identisch sind), blieben
+    // dadurch bis in alle Ewigkeit geclustert, egal wie tief man reinzoomt. Der
+    // Radius wird deshalb zu hohen Zoomstufen hin gezielt verkleinert, sodass sich
+    // nahe, aber unterschiedliche Ereignisse zuverlässig trennen. Nur noch wirklich
+    // identische (oder nahezu identische) Koordinaten bleiben dann geclustert und
+    // werden über spiderfyOnMaxZoom sauber aufgefächert.
+    maxClusterRadius: zoom => {
+      if (zoom >= 18) return 4;   // fast am Maxzoom: nur noch quasi-identische Punkte clustern
+      if (zoom >= 16) return 15;
+      if (zoom >= 13) return 25;
+      return 40;
+    },
     showCoverageOnHover: false,
     zoomToBoundsOnClick: false, // eigene, konsistente Zoom-Animation statt Leaflet-Standard
     // disableClusteringAtZoom bewusst NICHT gesetzt: würde das Clustering schon vor dem
@@ -1263,18 +1276,31 @@ function initClusterGroup() {
   // Eigene, sanfte Zoom-Animation beim Klick auf einen Cluster —
   // identisches Timing wie beim Anklicken einzelner Ereignisse (selectItem)
   clusterGroup.on('clusterclick', e => {
+    // WICHTIG: Klickt man mehrfach schnell hintereinander auf Cluster (z.B. weil
+    // sich nach jedem Klick sofort ein neuer, kleinerer Cluster unter dem Mauszeiger
+    // zeigt), lief bisher jede neue Zoom-Berechnung auf Basis von map.getZoom()
+    // WÄHREND die vorige flyTo-Animation noch in Bewegung war. map.getZoom() liefert
+    // in diesem Moment einen sich gerade verändernden Zwischenwert — jeder weitere
+    // Klick addierte darauf nochmal +3, wodurch sich der Zoom bei schnellen
+    // Mehrfachklicks explosionsartig aufschaukelte (daher "immer schneller").
+    // Fix: laufende Animation zuerst hart stoppen, damit aktuellerZoom immer den
+    // echten, stabilen Wert liefert.
+    map.stop();
+
     const bounds = e.layer.getBounds();
     const aktuellerZoom = map.getZoom();
     const benoetigterZoom = map.getBoundsZoom(bounds, false);
     // Wenn die Marker im Cluster praktisch auf demselben Punkt liegen,
     // fordert getBoundsZoom einen sehr hohen/unendlichen Zoom an — dann
-    // direkt bis zum echten Kartenmaxzoom (19) springen, wo spiderfyOnMaxZoom
-    // die Marker sauber auffächert, statt in kleinen +3-Schritten am
-    // Cluster "hängenzubleiben" oder vorzeitig zusammenzufallen.
+    // bis zum echten Kartenmaxzoom (19) springen, wo spiderfyOnMaxZoom
+    // die Marker sauber auffächert. Der Sprung pro Klick ist zusätzlich
+    // auf max. +3 Zoomstufen begrenzt — auch für diesen Fall — damit ein
+    // einzelner Klick nie mehr als eine moderate, nachvollziehbare
+    // Zoom-Bewegung auslöst, unabhängig davon wie die Cluster-Bounds liegen.
     const KARTEN_MAXZOOM = 19;
     const clusterLoestSichNieAuf = !isFinite(benoetigterZoom) || benoetigterZoom >= KARTEN_MAXZOOM;
     const zielZoom = clusterLoestSichNieAuf
-      ? KARTEN_MAXZOOM
+      ? Math.min(KARTEN_MAXZOOM, aktuellerZoom + 3)
       : Math.min(benoetigterZoom, aktuellerZoom + 3);
     const zoomDiff = Math.abs(zielZoom - aktuellerZoom);
     const flyDuration = Math.min(0.6 + zoomDiff * 0.25, 1.6);
@@ -2358,12 +2384,23 @@ function selectItem(id) {
 
   const RUHEPAUSE = 200; // ms — Pause NACH Animationsende, bevor Popup erscheint
 
+  // Laufende Animation stoppen, damit map.getZoom() gleich unten den echten,
+  // stabilen aktuellen Zoom liefert statt eines Zwischenwerts während des Fluges
+  // (verhindert Zoom-Aufschaukelung bei schnellen Mehrfachklicks, siehe clusterclick).
+  map.stop();
+
   // Zielzoom sanfter wählen: nicht pauschal auf Stufe 7 springen,
   // sondern nur so weit reinzoomen wie nötig um den Punkt sichtbar zu machen —
   // maximal 2 Stufen tiefer als aktuell, das verhindert den harten "Fallschirm-Sprung"
   // bei großen, weit herausgezoomten Clustern.
+  // WICHTIG: die alte Formel deckelte hart bei Zoom 9 — war man aber schon tiefer
+  // gezoomt (z.B. weil man gerade erst einen Cluster aufgelöst hat), zoomte ein
+  // Klick auf den jetzt sichtbaren Einzelmarker die Karte wieder auf Stufe 9 HERAUS
+  // ("Zurückspringen"-Bug). Ab jetzt: nie weiter herauszoomen als man schon ist.
   const aktuellerZoom = map.getZoom();
-  const zielZoom = Math.min(Math.max(aktuellerZoom, 5) + 2, 9);
+  const zielZoom = aktuellerZoom >= 9
+    ? aktuellerZoom          // schon nah genug dran — Zoom beibehalten, nur zentrieren
+    : Math.min(aktuellerZoom + 2, 9);
 
   // Zoomdauer proportional zur zurückzulegenden Distanz —
   // weite Sprünge dauern länger, kurze Bewegungen bleiben zügig
