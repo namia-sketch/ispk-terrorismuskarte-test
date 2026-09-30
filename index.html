@@ -2459,19 +2459,24 @@ function selectItem(id) {
   const zoomDiff = Math.abs(zielZoom - aktuellerZoom);
   const flyDuration = Math.min(0.6 + zoomDiff * 0.25, 1.6); // Sekunden
 
+  // WICHTIG: Ist der Marker gerade innerhalb eines Clusters "versteckt" (nur als
+  // Cluster-Bubble mit Zahl sichtbar, z.B. bei einem Klick aus der Liste heraus,
+  // ohne vorher manuell dorthin gezoomt zu haben), tut found.openPopup() nichts —
+  // ein nicht auf der Karte sichtbarer Layer kann kein Popup zeigen. Deshalb hier
+  // IMMER zoomToShowLayer() verwenden: das zoomt garantiert so weit rein, bis der
+  // Marker aus seinem Cluster gelöst und einzeln sichtbar ist, bevor das Popup
+  // geöffnet wird — unabhängig vom aktuellen Cluster-/Zoom-Zustand.
   try {
-    // Einzelne kontrollierte Flugbewegung statt doppeltem Zoom-Sprung
-    // (zoomToShowLayer + zusätzliches flyTo hintereinander wirkten ruckartig)
-    map.flyTo(found.getLatLng(), zielZoom, {
-      animate: true, duration: flyDuration, easeLinearity: 0.1,
+    clusterGroup.zoomToShowLayer(found, () => {
+      setTimeout(() => { try { found.openPopup(); } catch(e) {} }, RUHEPAUSE);
     });
-    setTimeout(() => { try { found.openPopup(); } catch(e) {} }, flyDuration * 1000 + RUHEPAUSE);
   } catch(e) {
-    // Fallback über zoomToShowLayer falls flyTo aus irgendeinem Grund fehlschlägt
+    // Fallback: eigene Flugbewegung falls zoomToShowLayer aus irgendeinem Grund fehlschlägt
     try {
-      clusterGroup.zoomToShowLayer(found, () => {
-        setTimeout(() => { try { found.openPopup(); } catch(e2) {} }, RUHEPAUSE);
+      map.flyTo(found.getLatLng(), zielZoom, {
+        animate: true, duration: flyDuration, easeLinearity: 0.1,
       });
+      setTimeout(() => { try { found.openPopup(); } catch(e2) {} }, flyDuration * 1000 + RUHEPAUSE);
     } catch(e3) {}
   }
 }
