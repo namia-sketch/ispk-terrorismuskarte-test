@@ -70,6 +70,12 @@ header h1{font-size:13px;font-weight:600;letter-spacing:.03em;}
 .dataset-update.stale{color:var(--muted);font-weight:600;font-style:italic;}
 .dataset-change{font-family:var(--mono);font-size:9px;color:var(--muted);cursor:pointer;border:none;background:transparent;flex-shrink:0;}
 .dataset-change:hover{color:var(--dim);}
+.dataset-dupes{
+  font-family:var(--mono);font-size:10px;font-weight:700;color:var(--orange);
+  cursor:pointer;padding:5px 9px;border-radius:4px;border:1px solid rgba(230,126,34,.4);
+  background:rgba(230,126,34,.08);transition:all .12s;
+}
+.dataset-dupes:hover{border-color:var(--orange);background:rgba(230,126,34,.16);}
 
 /* Custom cluster styling */
 .marker-cluster {
@@ -376,8 +382,10 @@ header h1{font-size:13px;font-weight:600;letter-spacing:.03em;}
 .feedback-submit:hover{background:#2d6abf;}
 .feedback-back{background:transparent;border:none;color:var(--dim);font-family:var(--mono);font-size:9px;cursor:pointer;letter-spacing:.06em;padding:0;margin-bottom:10px;}
 .feedback-back:hover{color:var(--text);}
-.access-hdr{padding:16px 20px 12px;border-bottom:1px solid var(--border);}
+.access-hdr{padding:16px 20px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
 .access-hdr-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.access-close{background:transparent;border:none;color:var(--dim);font-size:16px;cursor:pointer;line-height:1;padding:2px;}
+.access-close:hover{color:var(--text);}
 .access-hdr-sub{font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.06em;}
 .access-body{padding:16px 20px;}
 .access-label{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.1em;margin-bottom:5px;display:block;}
@@ -586,8 +594,11 @@ header h1{font-size:13px;font-weight:600;letter-spacing:.03em;}
 <div class="access-overlay" id="access-overlay" style="display:none;">
   <div class="access-card">
     <div class="access-hdr">
-      <div class="access-hdr-title">Datensatz herunterladen</div>
-      <div class="access-hdr-sub">ZUGANG NUR FÜR ZUGELASSENE INSTITUTIONEN</div>
+      <div>
+        <div class="access-hdr-title">Datensatz herunterladen</div>
+        <div class="access-hdr-sub">ZUGANG NUR FÜR ZUGELASSENE INSTITUTIONEN</div>
+      </div>
+      <button class="access-close" onclick="closeAccess()" title="Schließen">✕</button>
     </div>
     <div class="access-body">
       <label class="access-label">INSTITUTION</label>
@@ -613,6 +624,28 @@ header h1{font-size:13px;font-weight:600;letter-spacing:.03em;}
     <div class="access-footer">
       Der Download-Zugang wird von den teilnehmenden Institutionen verwaltet.<br>
       Wenden Sie sich an Ihren Forschungsleiter für eine Freischaltung.
+    </div>
+  </div>
+</div>
+
+<!-- Redundanz-Hinweis Modal -->
+<div class="access-overlay" id="dupes-overlay" style="display:none;">
+  <div class="access-card" style="max-width:560px;">
+    <div class="access-hdr">
+      <div>
+        <div class="access-hdr-title">Mögliche doppelte Einträge</div>
+        <div class="access-hdr-sub">GLEICHES DATUM · GLEICHE KOORDINATEN · GLEICHER AKTEUR/ART</div>
+      </div>
+      <button class="access-close" onclick="closeDupes()" title="Schließen">✕</button>
+    </div>
+    <div class="access-body">
+      <div style="font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:12px;">
+        Diese Einträge stimmen in Datum, Koordinaten sowie Akteur/Art überein und wurden
+        möglicherweise aus mehreren Dateien doppelt geladen (z.B. Basisdatei + Update-Schnipsel).
+        Das kann dazu führen, dass Cluster-Marker sich beim Zoomen nicht sauber auflösen.
+        Bitte in den Quelldateien prüfen — hier wird nichts automatisch gelöscht.
+      </div>
+      <div id="dupes-list" style="max-height:50vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px;"></div>
     </div>
   </div>
 </div>
@@ -730,6 +763,7 @@ header h1{font-size:13px;font-weight:600;letter-spacing:.03em;}
       <span class="dataset-name" id="dataset-name">—</span>
     </div>
     <span class="dataset-update" id="dataset-update" title="Klick: zum neuesten Eintrag springen" onclick="springeZuNeuestemEintrag()">—</span>
+    <span class="dataset-dupes" id="dataset-dupes" style="display:none" onclick="zeigeDuplikate()"></span>
   </div>
 
   <!-- Serie-Info-Bar -->
@@ -1052,6 +1086,7 @@ let selId = null;
 let clusterGroup = null;
 let analysisOpen = false;
 let loadedFileName = '';
+let DUPLIKAT_KANDIDATEN = [];
 
 // Serien-State — hier oben damit loadDemoData darauf zugreifen kann
 let DETECTED_SERIES = [];
@@ -1206,6 +1241,13 @@ function initClusterGroup() {
     maxClusterRadius: 40,
     showCoverageOnHover: false,
     zoomToBoundsOnClick: false, // eigene, konsistente Zoom-Animation statt Leaflet-Standard
+    // disableClusteringAtZoom bewusst NICHT gesetzt: würde das Clustering schon vor dem
+    // Kartenmaxzoom hart abschalten, sodass Marker mit identischen Koordinaten einfach
+    // übereinanderfallen statt zu spiderfyen (kein Cluster mehr da, das auffächern könnte).
+    // Stattdessen: Cluster bleibt bis zum echten Kartenmaxzoom bestehen und wird dort
+    // von spiderfyOnMaxZoom sauber aufgefächert.
+    spiderfyOnMaxZoom: true,
+    spiderfyDistanceMultiplier: 1.5, // etwas mehr Abstand zwischen den aufgefächerten Markern
     iconCreateFunction: cluster => {
       const count = cluster.getChildCount();
       const sz = count >= 50 ? 'large' : count >= 10 ? 'medium' : 'small';
@@ -1223,9 +1265,17 @@ function initClusterGroup() {
   clusterGroup.on('clusterclick', e => {
     const bounds = e.layer.getBounds();
     const aktuellerZoom = map.getZoom();
-    // Zielzoom: gerade so viel wie nötig um den Cluster aufzulösen,
-    // aber begrenzt damit auch große Cluster nicht zu tief springen
-    const zielZoom = Math.min(map.getBoundsZoom(bounds, false), aktuellerZoom + 3);
+    const benoetigterZoom = map.getBoundsZoom(bounds, false);
+    // Wenn die Marker im Cluster praktisch auf demselben Punkt liegen,
+    // fordert getBoundsZoom einen sehr hohen/unendlichen Zoom an — dann
+    // direkt bis zum echten Kartenmaxzoom (19) springen, wo spiderfyOnMaxZoom
+    // die Marker sauber auffächert, statt in kleinen +3-Schritten am
+    // Cluster "hängenzubleiben" oder vorzeitig zusammenzufallen.
+    const KARTEN_MAXZOOM = 19;
+    const clusterLoestSichNieAuf = !isFinite(benoetigterZoom) || benoetigterZoom >= KARTEN_MAXZOOM;
+    const zielZoom = clusterLoestSichNieAuf
+      ? KARTEN_MAXZOOM
+      : Math.min(benoetigterZoom, aktuellerZoom + 3);
     const zoomDiff = Math.abs(zielZoom - aktuellerZoom);
     const flyDuration = Math.min(0.6 + zoomDiff * 0.25, 1.6);
     map.flyTo(bounds.getCenter(), zielZoom, {
@@ -1744,6 +1794,34 @@ function processData(raw) {
     if (!d.event_id) d.event_id = null; // kein Link
   });
 
+  // ── Redundanz-Erkennung ──
+  // Derselbe Eintrag kann versehentlich doppelt geladen werden, z.B. wenn ein
+  // Ereignis sowohl in der Basisdatei als auch in einem "neue_eintraege"-Snippet
+  // steht. Das führt dazu, dass mehrere identische Marker exakt übereinander
+  // liegen und sich beim Zoomen/Spiderfy nicht sauber trennen lassen.
+  // Schlüssel: Datum + Koordinaten (gerundet, ~1m Genauigkeit) + Akteur + Art —
+  // bewusst OHNE Opferzahlen/Bemerkungen, damit spätere Korrekturen an einem
+  // Eintrag nicht fälschlich als "anderes Ereignis" durchgehen.
+  const gesehen = new Map();
+  DUPLIKAT_KANDIDATEN = [];
+  ALL_DATA.forEach(d => {
+    const datumKey = d.datum instanceof Date && !isNaN(d.datum) ? d.datum.toISOString().slice(0,10) : 'kein-datum';
+    const key = [
+      datumKey,
+      d.lat.toFixed(5), d.lon.toFixed(5),
+      (d.terroristische_gruppe || '').trim().toUpperCase(),
+      (d.art_raw || '').trim().toUpperCase(),
+    ].join('|');
+    if (gesehen.has(key)) {
+      DUPLIKAT_KANDIDATEN.push({ original: gesehen.get(key), duplikat: d, key });
+    } else {
+      gesehen.set(key, d);
+    }
+  });
+  if (DUPLIKAT_KANDIDATEN.length) {
+    console.warn(`⚠ ${DUPLIKAT_KANDIDATEN.length} möglicherweise doppelt geladene Einträge gefunden (gleiches Datum, gleiche Koordinaten, gleicher Akteur/Art):`, DUPLIKAT_KANDIDATEN);
+  }
+
   // Derive filter options
   ALL_YEARS  = [...new Set(ALL_DATA.map(d => d.datum instanceof Date ? d.datum.getFullYear() : null).filter(Boolean))].sort();
   ALL_MOTIVS = [...new Set(ALL_DATA.map(d => d.motiv_decoded).filter(Boolean))].sort();
@@ -1760,6 +1838,15 @@ function processData(raw) {
   document.getElementById('dataset-bar').style.display = 'flex';
   document.getElementById('dataset-name').textContent =
     `${loadedFileName} · ${ALL_DATA.length} Einträge${skipped ? ' · ' + skipped + ' ohne Koordinaten' : ''}  ·  ${DETECTED_SERIES.length} Serien erkannt`;
+
+  // Redundanz-Hinweis anzeigen, falls möglicherweise doppelt geladene Einträge gefunden wurden
+  const dupesEl = document.getElementById('dataset-dupes');
+  if (DUPLIKAT_KANDIDATEN.length) {
+    dupesEl.textContent = `⚠ ${DUPLIKAT_KANDIDATEN.length} mögliche Dopplung${DUPLIKAT_KANDIDATEN.length > 1 ? 'en' : ''} erkannt — Details anzeigen`;
+    dupesEl.style.display = 'inline-block';
+  } else {
+    dupesEl.style.display = 'none';
+  }
 
   // Letzte Aktualisierung anzeigen — jüngstes Ereignisdatum im gesamten Datensatz
   aktualisiereLetzteAktualisierungAnzeige();
@@ -2464,6 +2551,34 @@ function zeigeAccessFehler(msg) {
   const el = document.getElementById('access-error');
   el.textContent = msg;
   el.style.display = 'block';
+}
+
+function closeAccess() {
+  document.getElementById('access-overlay').style.display = 'none';
+}
+
+function zeigeDuplikate() {
+  const list = document.getElementById('dupes-list');
+  list.innerHTML = '';
+  DUPLIKAT_KANDIDATEN.forEach(({ original, duplikat }) => {
+    const datumStr = duplikat.datum instanceof Date && !isNaN(duplikat.datum)
+      ? duplikat.datum.toLocaleDateString('de-DE') : '—';
+    const row = document.createElement('div');
+    row.style.cssText = 'padding:9px 11px;background:rgba(230,126,34,.06);border:1px solid rgba(230,126,34,.25);border-radius:4px;font-size:11px;line-height:1.5;';
+    row.innerHTML = `
+      <div style="font-weight:600;color:var(--text);margin-bottom:3px;">${datumStr} · ${duplikat.ort || duplikat.land || '—'}</div>
+      <div style="color:var(--muted);font-family:var(--mono);font-size:9.5px;">
+        Koordinaten: ${duplikat.lat.toFixed(5)}, ${duplikat.lon.toFixed(5)}<br>
+        Akteur: ${duplikat.terroristische_gruppe || 'NB'} · Art: ${duplikat.art_decoded || '—'}<br>
+        Betrifft Zeilen-IDs: ${original.id} und ${duplikat.id}
+      </div>`;
+    list.appendChild(row);
+  });
+  document.getElementById('dupes-overlay').style.display = 'flex';
+}
+
+function closeDupes() {
+  document.getElementById('dupes-overlay').style.display = 'none';
 }
 
 function pruefeZugang() {
