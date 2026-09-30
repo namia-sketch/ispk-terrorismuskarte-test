@@ -1261,6 +1261,11 @@ const map = L.map('map', {
   wheelPxPerZoomLevel: 90,    // Mausrad reagiert weich statt hart
   zoomAnimation: true,
   markerZoomAnimation: true,
+  worldCopyJump: false,       // KEIN Sprung zwischen "Welt-Kopien" beim horizontalen Ziehen —
+                              // Marker existieren nur in der originalen Kopie der Welt, in
+                              // einer gespiegelten Kopie wäre die Karte sonst leer ("zwei Welten"-Bug)
+  maxBounds: [[-90, -180], [90, 180]], // hart auf eine einzige Weltkarte begrenzen
+  maxBoundsViscosity: 1.0,    // "klebt" am Rand statt darüber hinauszurutschen
 });
 // ── Kartenkacheln: OpenStreetMap Standard-Tiles, dauerhaft kostenlos ohne API-Key.
 // CartoDB (vorheriger Anbieter) verlangt seit Ende August 2026 einen API-Key
@@ -1269,6 +1274,7 @@ const map = L.map('map', {
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap contributors', maxZoom: 19,
   className: 'map-tiles-dark',
+  noWrap: true, // keine wiederholten Kartenkacheln jenseits von ±180° Längengrad
 }).addTo(map);
 
 // Maßstabsleiste — dezent oben rechts als kleines Addon
