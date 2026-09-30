@@ -228,9 +228,26 @@ header h1{font-size:13px;font-weight:600;letter-spacing:.03em;}
 .acc-hdr{
   display:flex;align-items:center;justify-content:space-between;
   padding:9px 13px;cursor:pointer;user-select:none;transition:background .1s;
+  /* Deutlich sichtbares Signal "hier ist etwas ausklappbar" — unterscheidet
+     diese Header optisch von statischen, nicht-klickbaren Abschnitten wie
+     der "Ergebnis"-Kachel darüber. */
+  border-left:2px solid transparent;
+  transition:background .1s, border-color .1s;
 }
-.acc-hdr:hover{background:var(--panel2);}
-.acc-arrow{font-family:var(--mono);font-size:9px;color:var(--muted);transition:transform .15s;}
+.acc-hdr:hover{background:var(--panel2);border-left-color:var(--blue);}
+.acc-toggle-wrap{display:flex;align-items:center;gap:5px;}
+.acc-toggle-label{
+  font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:.06em;
+}
+.acc-arrow{
+  font-family:var(--mono);font-size:11px;color:var(--muted);
+  transition:transform .18s, color .12s;
+  display:inline-flex;align-items:center;justify-content:center;
+  width:16px;height:16px;border-radius:3px;
+  background:rgba(255,255,255,.04);
+}
+.acc-hdr:hover .acc-arrow{color:var(--blue);background:rgba(58,123,213,.15);}
+.acc-hdr:hover .acc-toggle-label{color:var(--blue);}
 .acc-body{display:none;padding:0 13px 10px;}
 .acc-body.open{display:block;}
 
@@ -830,7 +847,10 @@ header h1{font-size:13px;font-weight:600;letter-spacing:.03em;}
   <div class="sec acc-sec" id="acc-time">
     <div class="acc-hdr" onclick="toggleAcc('time')">
       <span class="sec-label" style="margin:0;">Zeitraum</span>
-      <span class="acc-arrow" id="acc-arrow-time">▼</span>
+      <span class="acc-toggle-wrap">
+        <span class="acc-toggle-label" id="acc-label-time">EINKLAPPEN</span>
+        <span class="acc-arrow" id="acc-arrow-time">▼</span>
+      </span>
     </div>
     <div class="acc-body open" id="acc-body-time">
       <div style="margin-bottom:7px;" id="year-row-wrap">
@@ -854,7 +874,10 @@ header h1{font-size:13px;font-weight:600;letter-spacing:.03em;}
   <div class="sec acc-sec" id="acc-region">
     <div class="acc-hdr" onclick="toggleAcc('region')">
       <span class="sec-label" style="margin:0;">Region & Land</span>
-      <span class="acc-arrow" id="acc-arrow-region">▶</span>
+      <span class="acc-toggle-wrap">
+        <span class="acc-toggle-label" id="acc-label-region">AUSKLAPPEN</span>
+        <span class="acc-arrow" id="acc-arrow-region">▶</span>
+      </span>
     </div>
     <div class="acc-body" id="acc-body-region">
       <div id="region-filter-wrap">
@@ -871,7 +894,10 @@ header h1{font-size:13px;font-weight:600;letter-spacing:.03em;}
         Serien & Organisationen
         <span onclick="event.stopPropagation();toggleHint('serien')" style="font-family:var(--mono);font-size:9px;color:var(--muted);cursor:pointer;border:1px solid var(--border);border-radius:2px;padding:0 5px;line-height:16px;">?</span>
       </span>
-      <span class="acc-arrow" id="acc-arrow-serien">▶</span>
+      <span class="acc-toggle-wrap">
+        <span class="acc-toggle-label" id="acc-label-serien">AUSKLAPPEN</span>
+        <span class="acc-arrow" id="acc-arrow-serien">▶</span>
+      </span>
     </div>
     <div class="acc-body" id="acc-body-serien">
       <div class="ui-hint" id="hint-serien" style="display:none;">
@@ -901,7 +927,10 @@ header h1{font-size:13px;font-weight:600;letter-spacing:.03em;}
         Abfrage-Regeln
         <span onclick="event.stopPropagation();toggleHint('rules')" style="font-family:var(--mono);font-size:9px;color:var(--muted);cursor:pointer;border:1px solid var(--border);border-radius:2px;padding:0 5px;line-height:16px;">?</span>
       </span>
-      <span class="acc-arrow" id="acc-arrow-rules">▶</span>
+      <span class="acc-toggle-wrap">
+        <span class="acc-toggle-label" id="acc-label-rules">AUSKLAPPEN</span>
+        <span class="acc-arrow" id="acc-arrow-rules">▶</span>
+      </span>
     </div>
     <div class="acc-body" id="acc-body-rules">
       <div class="ui-hint" id="hint-rules" style="display:none;">
@@ -3170,9 +3199,24 @@ function reopenWelcome() {
 function toggleAcc(id) {
   const body  = document.getElementById('acc-body-' + id);
   const arrow = document.getElementById('acc-arrow-' + id);
+  const label = document.getElementById('acc-label-' + id);
   if (!body) return;
   const open = body.classList.toggle('open');
   if (arrow) arrow.textContent = open ? '▼' : '▶';
+  if (label) label.textContent = open ? 'EINKLAPPEN' : 'AUSKLAPPEN';
+
+  // Beim Aufklappen die Sidebar sanft mitscrollen, damit der komplette
+  // ausgeklappte Bereich automatisch in den Fokus rückt — sonst blieb z.B. bei
+  // den weiter unten liegenden "Abfrage-Regeln" der neu erschienene Inhalt
+  // unterhalb des sichtbaren Bereichs verborgen, man musste manuell nachscrollen.
+  // block:'start' statt 'nearest', damit die ganze Sektion (Kopfzeile + Inhalt)
+  // konsequent an den oberen sichtbaren Rand rückt statt nur "irgendwie sichtbar".
+  if (open) {
+    setTimeout(() => {
+      const section = body.closest('.acc-sec') || body;
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80); // kurze Pause, damit die Höhe des neu aufgeklappten Inhalts schon feststeht
+  }
 }
 
 // ══════════════════════════════════════════════
