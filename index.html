@@ -196,8 +196,8 @@ header h1{font-size:13px;font-weight:600;letter-spacing:.03em;}
 
 /* Spatial */
 .continent-block{border:1px solid var(--border);border-radius:3px;margin-bottom:3px;overflow:hidden;}
-.continent-hdr{display:flex;align-items:center;gap:6px;padding:4px 7px;cursor:pointer;user-select:none;transition:background .1s;}
-.continent-hdr:hover{background:rgba(255,255,255,.03);}
+.continent-hdr{display:flex;align-items:center;gap:6px;padding:4px 7px;cursor:pointer;user-select:none;background:rgba(255,255,255,.025);transition:background .12s;}
+.continent-hdr:hover{background:rgba(58,123,213,.1);}
 .cont-check{width:12px;height:12px;border:1px solid var(--border2);border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .12s;}
 .cont-check.checked{background:var(--blue);border-color:var(--blue);}
 .cont-check.partial{background:rgba(58,123,213,.3);border-color:var(--blue);}
@@ -205,8 +205,18 @@ header h1{font-size:13px;font-weight:600;letter-spacing:.03em;}
 .cont-check.checked svg{display:block;}
 .cont-name{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.07em;color:var(--dim);flex:1;}
 .cont-count{font-family:var(--mono);font-size:8px;color:var(--muted);}
-.cont-arrow{font-family:var(--mono);font-size:8px;color:var(--muted);transition:transform .15s;}
+/* Ausklapp-Pfeil deutlich sichtbarer machen — eigener Hintergrund-Chip statt
+   reinem, kaum sichtbarem Text, damit auf- und zuklappbare Kategorien klar als
+   solche erkennbar sind (analog zu den Filter-Accordion-Headern). */
+.cont-arrow{
+  font-family:var(--mono);font-size:10px;color:var(--muted);
+  transition:transform .15s, color .12s, background .12s;
+  display:inline-flex;align-items:center;justify-content:center;
+  width:15px;height:15px;border-radius:3px;flex-shrink:0;
+  background:rgba(255,255,255,.05);
+}
 .cont-arrow.open{transform:rotate(90deg);}
+.continent-hdr:hover .cont-arrow{color:var(--blue);background:rgba(58,123,213,.2);}
 .country-list{border-top:1px solid var(--border);padding:5px 7px;display:none;flex-wrap:wrap;gap:2px;}
 .country-list.open{display:flex;}
 .country-btn{padding:2px 6px;background:var(--bg);border:1px solid var(--border);border-radius:2px;color:var(--muted);font-family:var(--mono);font-size:8px;cursor:pointer;transition:all .1s;user-select:none;}
@@ -277,8 +287,8 @@ header h1{font-size:13px;font-weight:600;letter-spacing:.03em;}
 
 /* Region filter in spatial accordion */
 .continent-block{border:1px solid var(--border);border-radius:3px;margin-bottom:3px;overflow:hidden;}
-.continent-hdr{display:flex;align-items:center;gap:6px;padding:4px 7px;cursor:pointer;user-select:none;transition:background .1s;}
-.continent-hdr:hover{background:rgba(255,255,255,.03);}
+.continent-hdr{display:flex;align-items:center;gap:6px;padding:4px 7px;cursor:pointer;user-select:none;background:rgba(255,255,255,.025);transition:background .12s;}
+.continent-hdr:hover{background:rgba(58,123,213,.1);}
 .cont-check{width:12px;height:12px;border:1px solid var(--border2);border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .12s;}
 .cont-check.checked{background:var(--blue);border-color:var(--blue);}
 .cont-check.partial{background:rgba(58,123,213,.3);border-color:var(--blue);}
@@ -286,8 +296,15 @@ header h1{font-size:13px;font-weight:600;letter-spacing:.03em;}
 .cont-check.checked svg{display:block;}
 .cont-name{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.07em;color:var(--dim);flex:1;}
 .cont-count{font-family:var(--mono);font-size:8px;color:var(--muted);}
-.cont-arrow{font-family:var(--mono);font-size:8px;color:var(--muted);transition:transform .15s;}
+.cont-arrow{
+  font-family:var(--mono);font-size:10px;color:var(--muted);
+  transition:transform .15s, color .12s, background .12s;
+  display:inline-flex;align-items:center;justify-content:center;
+  width:15px;height:15px;border-radius:3px;flex-shrink:0;
+  background:rgba(255,255,255,.05);
+}
 .cont-arrow.open{transform:rotate(90deg);}
+.continent-hdr:hover .cont-arrow{color:var(--blue);background:rgba(58,123,213,.2);}
 .country-list{border-top:1px solid var(--border);padding:5px 7px;display:none;flex-wrap:wrap;gap:2px;}
 .country-list.open{display:flex;}
 .country-btn{padding:2px 6px;background:var(--bg);border:1px solid var(--border);border-radius:2px;color:var(--muted);font-family:var(--mono);font-size:8px;cursor:pointer;transition:all .1s;user-select:none;}
@@ -687,7 +704,8 @@ header h1{font-size:13px;font-weight:600;letter-spacing:.03em;}
 
 <!-- Auswahlliste: mehrere Ereignisse am (fast) selben Ort -->
 <div class="access-overlay" id="samesite-overlay" style="display:none;">
-  <div class="access-card" style="max-width:420px;">
+  <div class="access-card" style="max-width:900px;display:flex;gap:0;overflow:visible;">
+    <div style="flex:1;min-width:340px;">
     <div class="access-hdr">
       <div>
         <div class="access-hdr-title">Mehrere Ereignisse an diesem Ort</div>
@@ -697,10 +715,13 @@ header h1{font-size:13px;font-weight:600;letter-spacing:.03em;}
     </div>
     <div class="access-body">
       <div style="font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:12px;">
-        Diese Ereignisse liegen so nah beieinander (bzw. auf identischen Koordinaten),
-        dass weiteres Reinzoomen sie nicht trennen kann. Bitte eines auswählen:
+        Zum Vorschauen über einen Eintrag hovern — anklicken öffnet die volle Info-Kachel auf der Karte:
       </div>
       <div id="samesite-list" style="max-height:50vh;overflow-y:auto;display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+    </div>
+    <div id="samesite-preview" style="width:340px;flex-shrink:0;border-left:1px solid var(--border);padding:14px;display:none;overflow-y:auto;max-height:70vh;">
+      <div id="samesite-preview-content"></div>
     </div>
   </div>
 </div>
@@ -2559,13 +2580,20 @@ function renderAnalysis(data) {
 
     // Segmente nach Motivation sortiert (häufigste zuerst), jedes proportional zu seinem
     // Anteil an der Gesamtzahl DIESES Monats, gemeinsam ergeben sie die volle Balkenbreite.
+    // WICHTIG: Segmente werden mit expliziter, in JS berechneter linker Position
+    // (statt per Flex-Fluss) positioniert — das verhindert das Rendering-Problem,
+    // bei dem Segmente sich (in manchen Browsern/Zuständen) am rechten statt am
+    // linken Rand des Tracks stapelten, statt den Balken von links aufzufüllen.
     const motivEintraege = Object.entries(mcByMotiv[i]).sort((a,b) => b[1]-a[1]);
+    let cursor = 0;
     const segsHtml = motivEintraege.map(([motiv, anzahl]) => {
       const segBreite = (anzahl / c) * gesamtBreite;
-      return `<div class="bar-seg" style="width:${segBreite}%;background:${mColor(motiv)}"></div>`;
+      const left = cursor;
+      cursor += segBreite;
+      return `<div class="bar-seg" style="position:absolute;left:${left}%;top:0;bottom:0;width:${segBreite}%;background:${mColor(motiv)}"></div>`;
     }).join('');
 
-    row.innerHTML = `<span class="bar-lbl">${MONTHS_S[i]}</span><div class="bar-track" style="display:flex;">${segsHtml}</div><span class="bar-val">${c}</span>`;
+    row.innerHTML = `<span class="bar-lbl">${MONTHS_S[i]}</span><div class="bar-track" style="position:relative;">${segsHtml}</div><span class="bar-val">${c}</span>`;
 
     // Tooltip: Aufschlüsselung nach Motivation für diesen Monat
     const track = row.querySelector('.bar-track');
@@ -2746,19 +2774,39 @@ function closeDupes() {
 
 function zeigeSamesiteAuswahl(markers) {
   const list = document.getElementById('samesite-list');
+  const preview = document.getElementById('samesite-preview');
+  const previewContent = document.getElementById('samesite-preview-content');
   list.innerHTML = '';
+  preview.style.display = 'none';
+
   markers.forEach(m => {
     const d = ALL_DATA.find(x => x.id === m._ispkId);
     if (!d) return;
     const datumStr = d.datum instanceof Date && !isNaN(d.datum) ? d.datum.toLocaleDateString('de-DE') : '—';
     const item = document.createElement('div');
     item.className = 'samesite-item';
+
+    // Hover: volle Info-Kachel (identisch zum Karten-Popup) als Vorschau daneben zeigen —
+    // Klick: Vorschau "fixieren", d.h. die echte Auswahl auf der Karte öffnen.
+    item.onmouseenter = () => {
+      previewContent.innerHTML = buildPopup(d);
+      preview.style.display = 'block';
+    };
     item.onclick = () => { closeSamesite(); selectItem(d.id); };
+
     item.innerHTML = `
       <div class="samesite-item-title">${datumStr} · ${d.ort || d.land || '—'}</div>
       <div class="samesite-item-sub">${d.terroristische_gruppe || 'NB'} · ${d.art_decoded || '—'}</div>`;
     list.appendChild(item);
   });
+
+  // Vorschau des ersten Eintrags direkt anzeigen, damit man nicht erst hovern muss,
+  // um zu sehen, dass es überhaupt eine Vorschau gibt.
+  if (markers.length) {
+    const first = ALL_DATA.find(x => x.id === markers[0]._ispkId);
+    if (first) { previewContent.innerHTML = buildPopup(first); preview.style.display = 'block'; }
+  }
+
   document.getElementById('samesite-overlay').style.display = 'flex';
 }
 
