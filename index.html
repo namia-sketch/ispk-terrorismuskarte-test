@@ -316,6 +316,20 @@ header h1{font-size:13px;font-weight:600;letter-spacing:.03em;}
 .bar-track{flex:1;height:10px;background:var(--panel2);border-radius:2px;overflow:hidden;}
 .bar-fill{height:100%;border-radius:2px;transition:width .3s;}
 .bar-val{font-family:var(--mono);font-size:9px;color:var(--dim);width:20px;flex-shrink:0;}
+.bar-track{position:relative;}
+.bar-seg{height:100%;flex-shrink:0;transition:opacity .12s;}
+.bar-track:hover .bar-seg{opacity:.85;}
+.bar-tooltip{
+  position:fixed;z-index:5000;pointer-events:none;
+  background:#181a22;border:1px solid var(--border2);border-radius:5px;
+  padding:8px 10px;font-family:var(--sans);font-size:10px;color:var(--text);
+  box-shadow:0 4px 16px rgba(0,0,0,.4);min-width:150px;display:none;
+}
+.bar-tooltip-title{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.06em;margin-bottom:5px;}
+.bar-tooltip-row{display:flex;align-items:center;gap:6px;margin-bottom:2px;}
+.bar-tooltip-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.bar-tooltip-name{flex:1;white-space:nowrap;}
+.bar-tooltip-count{font-family:var(--mono);font-weight:600;}
 .cat-row{display:flex;align-items:center;gap:6px;margin-bottom:3px;}
 .cat-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
 .cat-name{font-family:var(--mono);font-size:9px;color:var(--dim);flex:1;}
@@ -916,6 +930,7 @@ header h1{font-size:13px;font-weight:600;letter-spacing:.03em;}
   <div class="an-body" id="an-body">
     <div class="sec-label" style="margin-bottom:5px;">Fälle pro Monat</div>
     <div id="bar-chart" style="margin-bottom:10px;"></div>
+    <div id="bar-tooltip" class="bar-tooltip"></div>
     <div class="sec-label" style="margin-bottom:5px;">Nach Motivation</div>
     <div id="cat-rows" style="margin-bottom:6px;"></div>
     <button class="export-btn" onclick="exportCSV()">↓ GEFILTERTE DATEN ALS CSV EXPORTIEREN</button>
@@ -2483,14 +2498,54 @@ function toggleAnalysis() {
 }
 
 function renderAnalysis(data) {
+  // Pro Monat: Gesamtzahl UND Aufschlüsselung nach Motivation (für Stapel-Balken + Tooltip)
   const mc = Array(12).fill(0);
-  data.forEach(d => { if (d.datum instanceof Date) mc[d.datum.getMonth()]++; });
+  const mcByMotiv = Array.from({length: 12}, () => ({})); // [monat] -> { motiv: count }
+  data.forEach(d => {
+    if (!(d.datum instanceof Date)) return;
+    const mon = d.datum.getMonth();
+    mc[mon]++;
+    const motiv = d.motiv_decoded || 'Nicht bekannt';
+    mcByMotiv[mon][motiv] = (mcByMotiv[mon][motiv] || 0) + 1;
+  });
   const maxM = Math.max(...mc, 1);
   const bc = document.getElementById('bar-chart'); bc.innerHTML = '';
+  const tooltip = document.getElementById('bar-tooltip');
+
   mc.forEach((c,i) => {
     if (!c) return;
     const row = document.createElement('div'); row.className = 'bar-row';
-    row.innerHTML = `<span class="bar-lbl">${MONTHS_S[i]}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.round(c/maxM*100)}%;background:var(--blue)"></div></div><span class="bar-val">${c}</span>`;
+    const gesamtBreite = Math.round(c/maxM*100);
+
+    // Segmente nach Motivation sortiert (häufigste zuerst), jedes proportional zu seinem
+    // Anteil an der Gesamtzahl DIESES Monats, gemeinsam ergeben sie die volle Balkenbreite.
+    const motivEintraege = Object.entries(mcByMotiv[i]).sort((a,b) => b[1]-a[1]);
+    const segsHtml = motivEintraege.map(([motiv, anzahl]) => {
+      const segBreite = (anzahl / c) * gesamtBreite;
+      return `<div class="bar-seg" style="width:${segBreite}%;background:${mColor(motiv)}"></div>`;
+    }).join('');
+
+    row.innerHTML = `<span class="bar-lbl">${MONTHS_S[i]}</span><div class="bar-track" style="display:flex;">${segsHtml}</div><span class="bar-val">${c}</span>`;
+
+    // Tooltip: Aufschlüsselung nach Motivation für diesen Monat
+    const track = row.querySelector('.bar-track');
+    track.addEventListener('mousemove', ev => {
+      const rows = motivEintraege.map(([motiv, anzahl]) => `
+        <div class="bar-tooltip-row">
+          <span class="bar-tooltip-dot" style="background:${mColor(motiv)}"></span>
+          <span class="bar-tooltip-name">${motiv}</span>
+          <span class="bar-tooltip-count">${anzahl}</span>
+        </div>`).join('');
+      tooltip.innerHTML = `<div class="bar-tooltip-title">${MONTHS_S[i].toUpperCase()} · ${c} GESAMT</div>${rows}`;
+      tooltip.style.display = 'block';
+      const tw = tooltip.offsetWidth || 160;
+      let left = ev.clientX + 14;
+      if (left + tw > window.innerWidth - 10) left = ev.clientX - tw - 14;
+      tooltip.style.left = left + 'px';
+      tooltip.style.top  = (ev.clientY - 10) + 'px';
+    });
+    track.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+
     bc.appendChild(row);
   });
   if (!bc.children.length) bc.innerHTML = '<span style="font-family:var(--mono);font-size:9px;color:var(--muted);">Keine Daten</span>';
