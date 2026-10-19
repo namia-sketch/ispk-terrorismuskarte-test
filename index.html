@@ -196,8 +196,10 @@ header h1{font-size:13px;font-weight:600;letter-spacing:.03em;}
 
 /* Spatial */
 .continent-block{border:1px solid var(--border);border-radius:3px;margin-bottom:3px;overflow:hidden;}
-.continent-hdr{display:flex;align-items:center;gap:6px;padding:4px 7px;cursor:pointer;user-select:none;background:rgba(255,255,255,.025);transition:background .12s;}
-.continent-hdr:hover{background:rgba(58,123,213,.1);}
+/* Kategorie-Kacheln (Kontinent/Land-Header) komplett schwarz statt nur leicht
+   getönt — heben sich so klar vom dunkelblauen Menü-Hintergrund ab. */
+.continent-hdr{display:flex;align-items:center;gap:6px;padding:4px 7px;cursor:pointer;user-select:none;background:#000;transition:background .12s;}
+.continent-hdr:hover{background:#111;}
 .cont-check{width:12px;height:12px;border:1px solid var(--border2);border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .12s;}
 .cont-check.checked{background:var(--blue);border-color:var(--blue);}
 .cont-check.partial{background:rgba(58,123,213,.3);border-color:var(--blue);}
@@ -213,10 +215,10 @@ header h1{font-size:13px;font-weight:600;letter-spacing:.03em;}
   transition:transform .15s, color .12s, background .12s;
   display:inline-flex;align-items:center;justify-content:center;
   width:15px;height:15px;border-radius:3px;flex-shrink:0;
-  background:rgba(255,255,255,.05);
+  background:rgba(255,255,255,.08);
 }
 .cont-arrow.open{transform:rotate(90deg);}
-.continent-hdr:hover .cont-arrow{color:var(--blue);background:rgba(58,123,213,.2);}
+.continent-hdr:hover .cont-arrow{color:var(--blue);background:rgba(58,123,213,.25);}
 .country-list{border-top:1px solid var(--border);padding:5px 7px;display:none;flex-wrap:wrap;gap:2px;}
 .country-list.open{display:flex;}
 .country-btn{padding:2px 6px;background:var(--bg);border:1px solid var(--border);border-radius:2px;color:var(--muted);font-family:var(--mono);font-size:8px;cursor:pointer;transition:all .1s;user-select:none;}
@@ -240,11 +242,15 @@ header h1{font-size:13px;font-weight:600;letter-spacing:.03em;}
   padding:9px 13px;cursor:pointer;user-select:none;transition:background .1s;
   /* Deutlich sichtbares Signal "hier ist etwas ausklappbar" — unterscheidet
      diese Header optisch von statischen, nicht-klickbaren Abschnitten wie
-     der "Ergebnis"-Kachel darüber. */
+     der "Ergebnis"-Kachel darüber. Komplett schwarzer Hintergrund statt der
+     ererbten dunkelblauen Menüfarbe, damit die Kategorie-Kacheln (ZEITRAUM,
+     REGION & LAND, SERIEN & ORGANISATIONEN, ABFRAGE-REGELN) sich klar vom
+     Menü-Hintergrund absetzen. */
+  background:#000;
   border-left:2px solid transparent;
   transition:background .1s, border-color .1s;
 }
-.acc-hdr:hover{background:var(--panel2);border-left-color:var(--blue);}
+.acc-hdr:hover{background:#111;border-left-color:var(--blue);}
 .acc-toggle-wrap{display:flex;align-items:center;gap:5px;}
 .acc-toggle-label{
   font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:.06em;
@@ -287,8 +293,12 @@ header h1{font-size:13px;font-weight:600;letter-spacing:.03em;}
 
 /* Region filter in spatial accordion */
 .continent-block{border:1px solid var(--border);border-radius:3px;margin-bottom:3px;overflow:hidden;}
-.continent-hdr{display:flex;align-items:center;gap:6px;padding:4px 7px;cursor:pointer;user-select:none;background:rgba(255,255,255,.025);transition:background .12s;}
-.continent-hdr:hover{background:rgba(58,123,213,.1);}
+/* Kategorie-Kacheln (Kontinent/Land-Header) komplett schwarz statt nur leicht
+   getönt — heben sich so klar vom dunkelblauen Menü-Hintergrund ab. Diese Regel
+   steht als zweite (kaskaden-gewinnende) Kopie im Stylesheet, daher hier ebenso
+   geändert wie oben — sonst würde diese Version die erste wieder überschreiben. */
+.continent-hdr{display:flex;align-items:center;gap:6px;padding:4px 7px;cursor:pointer;user-select:none;background:#000;transition:background .12s;}
+.continent-hdr:hover{background:#111;}
 .cont-check{width:12px;height:12px;border:1px solid var(--border2);border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .12s;}
 .cont-check.checked{background:var(--blue);border-color:var(--blue);}
 .cont-check.partial{background:rgba(58,123,213,.3);border-color:var(--blue);}
@@ -301,10 +311,10 @@ header h1{font-size:13px;font-weight:600;letter-spacing:.03em;}
   transition:transform .15s, color .12s, background .12s;
   display:inline-flex;align-items:center;justify-content:center;
   width:15px;height:15px;border-radius:3px;flex-shrink:0;
-  background:rgba(255,255,255,.05);
+  background:rgba(255,255,255,.08);
 }
 .cont-arrow.open{transform:rotate(90deg);}
-.continent-hdr:hover .cont-arrow{color:var(--blue);background:rgba(58,123,213,.2);}
+.continent-hdr:hover .cont-arrow{color:var(--blue);background:rgba(58,123,213,.25);}
 .country-list{border-top:1px solid var(--border);padding:5px 7px;display:none;flex-wrap:wrap;gap:2px;}
 .country-list.open{display:flex;}
 .country-btn{padding:2px 6px;background:var(--bg);border:1px solid var(--border);border-radius:2px;color:var(--muted);font-family:var(--mono);font-size:8px;cursor:pointer;transition:all .1s;user-select:none;}
@@ -2578,13 +2588,20 @@ function renderAnalysis(data) {
     const row = document.createElement('div'); row.className = 'bar-row';
     const gesamtBreite = Math.round(c/maxM*100);
 
-    // Segmente nach Motivation sortiert (häufigste zuerst), jedes proportional zu seinem
-    // Anteil an der Gesamtzahl DIESES Monats, gemeinsam ergeben sie die volle Balkenbreite.
-    // WICHTIG: Segmente werden mit expliziter, in JS berechneter linker Position
-    // (statt per Flex-Fluss) positioniert — das verhindert das Rendering-Problem,
-    // bei dem Segmente sich (in manchen Browsern/Zuständen) am rechten statt am
-    // linken Rand des Tracks stapelten, statt den Balken von links aufzufüllen.
-    const motivEintraege = Object.entries(mcByMotiv[i]).sort((a,b) => b[1]-a[1]);
+    // Segmente in FESTER Reihenfolge (Reihenfolge von MOTIV_COLOR), NICHT nach Häufigkeit
+    // pro Monat sortiert — sonst wechselt die Farbabfolge von Monat zu Monat (z.B. mal
+    // Grau zuerst, mal Rot zuerst) und die Balken sind optisch nicht mehr vergleichbar
+    // ("Statistik-Einbindung wirkt falsch"). Mit fester Reihenfolge liegt eine Kategorie
+    // in jedem Monat an derselben Stelle im Balken. Jedes Segment ist proportional zu
+    // seinem Anteil an der Gesamtzahl DIESES Monats, gemeinsam ergeben sie die volle
+    // Balkenbreite. Segmente werden mit expliziter, in JS berechneter linker Position
+    // (statt per Flex-Fluss) positioniert — das verhindert das Rendering-Problem, bei dem
+    // Segmente sich am rechten statt am linken Rand des Tracks stapelten.
+    const motivReihenfolge = Object.keys(MOTIV_COLOR);
+    const motivEintraege = Object.entries(mcByMotiv[i]).sort((a,b) => {
+      const ia = motivReihenfolge.indexOf(a[0]), ib = motivReihenfolge.indexOf(b[0]);
+      return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+    });
     let cursor = 0;
     const segsHtml = motivEintraege.map(([motiv, anzahl]) => {
       const segBreite = (anzahl / c) * gesamtBreite;
@@ -2656,6 +2673,13 @@ const INSTITUTIONEN = [
     domains:   ['uni-kiel.de', 'email.uni-kiel.de'],
     whitelist: ['daten@ispk-kiel.de'],
     kontakt:   'datenbeauftragter@ispk-kiel.de',
+  },
+  // ── TESTZUGANG (intern) — vor dem produktiven Einsatz diesen Block entfernen ──
+  {
+    name: 'Test (intern)',
+    domains:   ['proton.me'],
+    whitelist: ['malte.nami01@proton.me'],
+    kontakt:   '',
   },
   // ── Weitere Institutionen hier eintragen ──
   // {
@@ -2772,6 +2796,7 @@ function closeDupes() {
   document.getElementById('dupes-overlay').style.display = 'none';
 }
 
+let samesiteHoverTimer = null;
 function zeigeSamesiteAuswahl(markers) {
   const list = document.getElementById('samesite-list');
   const preview = document.getElementById('samesite-preview');
@@ -2788,11 +2813,20 @@ function zeigeSamesiteAuswahl(markers) {
 
     // Hover: volle Info-Kachel (identisch zum Karten-Popup) als Vorschau daneben zeigen —
     // Klick: Vorschau "fixieren", d.h. die echte Auswahl auf der Karte öffnen.
+    // WICHTIG: kurze Verzögerung (Debounce), damit die Vorschau nicht bei jeder minimalen
+    // Mausbewegung/beim Durchqueren zwischen zwei Einträgen sofort hin- und herspringt —
+    // der Trigger war zu empfindlich und hat die Vorschau schon bei bloßem Vorbeifahren
+    // "springen" lassen. Der Wechsel passiert jetzt erst, wenn der Zeiger kurz (80ms) auf
+    // dem Eintrag verweilt.
     item.onmouseenter = () => {
-      previewContent.innerHTML = buildPopup(d);
-      preview.style.display = 'block';
+      clearTimeout(samesiteHoverTimer);
+      samesiteHoverTimer = setTimeout(() => {
+        previewContent.innerHTML = buildPopup(d);
+        preview.style.display = 'block';
+      }, 80);
     };
-    item.onclick = () => { closeSamesite(); selectItem(d.id); };
+    item.onmouseleave = () => { clearTimeout(samesiteHoverTimer); };
+    item.onclick = () => { clearTimeout(samesiteHoverTimer); closeSamesite(); selectItem(d.id); };
 
     item.innerHTML = `
       <div class="samesite-item-title">${datumStr} · ${d.ort || d.land || '—'}</div>
