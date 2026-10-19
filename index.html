@@ -656,6 +656,21 @@ header h1{font-size:13px;font-weight:600;letter-spacing:.03em;}
 .sel-bar-fill{height:100%;border-radius:2px;}
 .sel-cnt{font-family:var(--mono);font-size:10px;color:var(--dim);min-width:22px;text-align:right;}
 .sel-range{font-family:var(--mono);font-size:10px;color:var(--dim);}
+
+.sel-export{width:100%;margin-bottom:8px;padding:7px 0;background:rgba(39,174,96,.12);border:1px solid rgba(39,174,96,.4);border-radius:4px;color:#4cd98a;font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.06em;cursor:pointer;}
+.sel-export:hover{background:rgba(39,174,96,.22);}
+.sel-kette{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:7px;padding:6px 8px;background:rgba(58,123,213,.1);border:1px solid rgba(58,123,213,.3);border-radius:4px;font-size:10px;color:var(--text);line-height:1.4;}
+.sel-zurueck{background:transparent;border:1px solid var(--border2);border-radius:3px;color:var(--text);font-family:var(--mono);font-size:9px;padding:2px 7px;cursor:pointer;}
+.sel-zurueck:hover{border-color:var(--blue);color:var(--blue);}
+.sel-tipp{font-size:9.5px;color:var(--muted);line-height:1.4;margin-top:6px;}
+.sel-row.klick{cursor:pointer;margin:0 -6px 2px;padding:3px 6px;border-radius:4px;}
+.sel-row.klick:hover{background:rgba(58,123,213,.16);}
+.sel-dl{flex-shrink:0;width:20px;height:20px;line-height:16px;padding:0;background:transparent;border:1px solid var(--border2);border-radius:3px;color:var(--dim);font-size:12px;cursor:pointer;}
+.sel-dl:hover{color:#4cd98a;border-color:#4cd98a;}
+.sel-mehr{font-family:var(--mono);font-size:9px;color:var(--blue);cursor:pointer;margin:2px 0 0 14px;}
+.sel-mehr:hover{text-decoration:underline;}
+.access-check{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--dim);margin:-4px 0 12px;cursor:pointer;}
+.access-check input{accent-color:var(--blue);}
 </style>
 </head>
 <body>
@@ -699,34 +714,31 @@ header h1{font-size:13px;font-weight:600;letter-spacing:.03em;}
     <div class="access-hdr">
       <div>
         <div class="access-hdr-title">Datensatz herunterladen</div>
-        <div class="access-hdr-sub">ZUGANG NUR FÜR ZUGELASSENE INSTITUTIONEN</div>
+        <div class="access-hdr-sub">ZUGANG FÜR LIZENZIERTE KUNDEN</div>
       </div>
       <button class="access-close" onclick="closeAccess()" title="Schließen">✕</button>
     </div>
     <div class="access-body">
-      <label class="access-label">INSTITUTION</label>
-      <select class="access-select" id="access-institution" onchange="onInstitutionChange()">
-        <option value="">— Institution auswählen —</option>
-      </select>
-      <label class="access-label">IHRE E-MAIL-ADRESSE</label>
-      <input class="access-input" type="email" id="access-email"
-        placeholder="vorname.nachname@uni-beispiel.de"
+      <label class="access-label">ZUGANGSCODE</label>
+      <input class="access-input" type="text" id="access-code" autocomplete="off" spellcheck="false"
+        style="font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;"
+        placeholder="ISPK-XXXX-XXXX-XXXX"
         oninput="clearAccessError()" onkeydown="if(event.key==='Enter')pruefeZugang()">
+      <label class="access-check"><input type="checkbox" id="access-merken" checked> Code auf diesem Gerät merken (30 Tage)</label>
       <div class="access-error" id="access-error"></div>
       <div class="access-info"  id="access-info"></div>
-      <button class="access-btn" onclick="pruefeZugang()">DOWNLOAD STARTEN</button>
+      <button class="access-btn" id="access-btn" onclick="pruefeZugang()">DOWNLOAD STARTEN</button>
       <div class="access-divider">
         <div class="access-divider-line"></div>
         <div class="access-divider-text">NOCH KEIN ZUGANG?</div>
         <div class="access-divider-line"></div>
       </div>
       <button class="access-request-btn" onclick="zugangsAnfrage()">
-        ZUGANG BEANTRAGEN — vorausgefüllte Anfrage an Forschungsleiter
-      </button>
+        ZUGANGSCODE ANFRAGEN — vorausgefüllte Mail an das Institut</button>
     </div>
     <div class="access-footer">
-      Der Download-Zugang wird von den teilnehmenden Institutionen verwaltet.<br>
-      Wenden Sie sich an Ihren Forschungsleiter für eine Freischaltung.
+      Der Download ist Lizenznehmern vorbehalten. Jeder Export enthält ein Lizenz-Wasserzeichen;<br>
+      Weitergabe an Dritte nur nach den Nutzungsbedingungen des ISPK. <span id="access-terms"></span>
     </div>
   </div>
 </div>
@@ -1090,7 +1102,7 @@ header h1{font-size:13px;font-weight:600;letter-spacing:.03em;}
     </div>
     <div class="legend-section">
       <div class="legend-sec-label">AUSWAHL</div>
-      <div class="legend-hint"><b>⇧ Shift + Ziehen</b> markiert einen Bereich,<br><b>⇧ Shift + Klick</b> einzelne Punkte — mit Mini-Statistik.</div>
+      <div class="legend-hint"><b>⇧ Shift + Ziehen</b> markiert einen Bereich,<br><b>Strg / ⌘ + Klick</b> wählt einzelne Fälle (Windows: Strg, Mac: Cmd) — mit Mini-Statistik und Export.</div>
     </div>
   </div>
 </div>
@@ -1432,10 +1444,10 @@ function initClusterGroup() {
   // Eigene, sanfte Zoom-Animation beim Klick auf einen Cluster —
   // identisches Timing wie beim Anklicken einzelner Ereignisse (selectItem)
   clusterGroup.on('clusterclick', e => {
-    // Shift+Klick auf einen Cluster: alle enthaltenen Ereignisse zur Auswahl hinzufügen
-    if (e.originalEvent && e.originalEvent.shiftKey) {
+    // Strg/Cmd+Klick auf einen Cluster: alle enthaltenen Ereignisse zur Auswahl hinzufügen
+    if (istEinzelAuswahl(e.originalEvent)) {
       e.layer.getAllChildMarkers().forEach(m => selIds.add(m._ispkId));
-      removeSelRect(); applySelection();
+      selResetVerfeinerung(); removeSelRect(); applySelection();
       return;
     }
     // WICHTIG: Klickt man mehrfach schnell hintereinander auf Cluster (z.B. weil
@@ -2356,16 +2368,16 @@ function renderMarkers(data) {
     const icon = makeIcon(mColor(d.motiv_decoded), sz, isHighlighted, istGewaehlt);
     const m = L.marker([d.lat, d.lon], { icon })
       .bindPopup(buildPopup(d), { maxWidth: 380, autoPan: true, autoPanPadding: [30, 30] });
-    // Shift+Klick soll KEIN Popup öffnen, sondern den Punkt zur Auswahl hinzufügen/entfernen:
-    // den eingebauten Popup-Öffner durch eine Variante ersetzen, die Shift-Klicks ignoriert.
+    // Strg/Cmd+Klick soll KEIN Popup öffnen, sondern den Punkt zur Auswahl hinzufügen/entfernen:
+    // den eingebauten Popup-Öffner durch eine Variante ersetzen, die diese Klicks ignoriert.
     const popupOeffner = m._openPopup;
     m.off('click', popupOeffner);
     m.on('click', function (ev) {
-      if (ev.originalEvent && ev.originalEvent.shiftKey) return;
+      if (istEinzelAuswahl(ev.originalEvent)) return;
       popupOeffner.call(m, ev);
     });
     m.on('click', ev => {
-      if (ev.originalEvent && ev.originalEvent.shiftKey) { toggleSel(d.id); return; }
+      if (istEinzelAuswahl(ev.originalEvent)) { toggleSel(d.id); return; }
       selectItem(d.id);
     });
     m._ispkId = d.id;
@@ -2738,46 +2750,31 @@ const SPONSOR_URL  = '';   // z.B. 'https://example.com/logo.png'
 const SPONSOR_LINK = '';   // z.B. 'https://example.com'
 const SPONSOR_NAME = '';   // z.B. 'Beispiel Stiftung'
 
-// ── Google Apps Script URL für Tracking ──
-// Anleitung: script.google.com → Neues Projekt → Web-App deployen
-// Leer lassen um Tracking zu deaktivieren
-const TRACKING_URL = '';
+// ══════════════════════════════════════════════
+// DOWNLOAD-LIZENZ
+// Kunden bekommen einen Zugangscode. Beim Export prüft ein kleiner Lizenz-Dienst
+// (siehe Ordner lizenz-server/) den Code, setzt ein kundenspezifisches Wasserzeichen
+// und protokolliert den Abruf.
+// ══════════════════════════════════════════════
+// Adresse des Lizenz-Dienstes, z.B. 'https://ispk-lizenz.<konto>.workers.dev/export'.
+// LEER = TESTMODUS: Codes werden nur lokal im Browser geprüft (siehe TEST_LIZENZEN) —
+// das ist KEIN Schutz, nur zum Ausprobieren der Abläufe (z.B. auf GitHub Pages).
+const LIZENZ_API_URL = 'https://ispk-lizenz.malte-nami.workers.dev/export';
 
-// ── Zugelassene Institutionen & Whitelist ──
-// Format: { name, domains: [...], whitelist: [...] }
-// domains:   Alle E-Mail-Domains dieser Institution (für Anfrage-Formular)
-// whitelist: Exakte E-Mail-Adressen die Download-Zugang haben
-// kontakt:   Mail des Datenbeauftragten (wird in Anfrage-Mail vorausgefüllt)
-//            DARF NICHT in der whitelist stehen (Anti-Missbrauch)
-const INSTITUTIONEN = [
-  {
-    name: 'CAU Kiel — ISPK',
-    domains:   ['uni-kiel.de', 'email.uni-kiel.de'],
-    whitelist: ['daten@ispk-kiel.de'],
-    kontakt:   'datenbeauftragter@ispk-kiel.de',
-  },
-  // ── TESTZUGANG (intern) — vor dem produktiven Einsatz diesen Block entfernen ──
-  {
-    name: 'Test (intern)',
-    domains:   ['proton.me'],
-    whitelist: ['malte.nami01@proton.me'],
-    kontakt:   '',
-  },
-  // ── Weitere Institutionen hier eintragen ──
-  // {
-  //   name: 'Universität Hamburg',
-  //   domains:   ['uni-hamburg.de', 'studium.uni-hamburg.de'],
-  //   whitelist: ['max.mustermann@uni-hamburg.de'],
-  //   kontakt:   'forschung@uni-hamburg.de',
-  // },
-];
+// Wohin Zugangs-Anfragen gehen (Platzhalter — vor dem Einsatz durch die echte Adresse ersetzen)
+const LIZENZ_KONTAKT = 'datenbeauftragter@ispk-kiel.de';
 
-// ── Anti-Missbrauch: Kontakt-Mails gesperrt als Download-Zugang ──
-// Automatisch aus INSTITUTIONEN befüllt — nicht manuell ändern
-const GESPERRTE_MAILS = new Set(INSTITUTIONEN.map(i => i.kontakt).filter(Boolean));
+// Optional: Link zu den Nutzungsbedingungen (wird im Download-Fenster angezeigt)
+const NUTZUNGSBEDINGUNGEN_URL = '';
 
-// ── Session-Dauer (Tage bis erneute Eingabe nötig) ──
-const SESSION_TAGE = 30;
+// Nur für den Testmodus (LIZENZ_API_URL leer). Im Echtbetrieb ohne Wirkung.
+const TEST_LIZENZEN = {
+  'ISPK-TEST-2026': { id: 'TEST', name: 'Test (intern)', typ: 'voll' },
+};
+
+// Wie lange der Zugangscode auf dem Gerät gemerkt wird (Tage)
+const CODE_MERKEN_TAGE = 30;
+
 
 // ══════════════════════════════════════════════
 // SPONSORING-LOGO
@@ -2798,47 +2795,6 @@ function initSponsor() {
 // ZUGANGSKONTROLLE
 // ══════════════════════════════════════════════
 
-function hashMail(mail) {
-  // Einfacher Hash für Tracking ohne Klartext zu speichern
-  let h = 0;
-  for (let c of mail.toLowerCase()) h = (h * 31 + c.charCodeAt(0)) & 0xffffffff;
-  return Math.abs(h).toString(16).padStart(8, '0');
-}
-
-function sessionKey(mail) { return 'ispk_access_' + hashMail(mail); }
-
-function hatGueltigeSession(mail) {
-  const key = sessionKey(mail);
-  const saved = localStorage.getItem(key);
-  if (!saved) return false;
-  const { ts } = JSON.parse(saved);
-  return (Date.now() - ts) < SESSION_TAGE * 86400000;
-}
-
-function speichereSession(mail, institution) {
-  localStorage.setItem(sessionKey(mail), JSON.stringify({ ts: Date.now(), institution }));
-}
-
-function initAccessModal() {
-  const sel = document.getElementById('access-institution');
-  if (!sel) return;
-  INSTITUTIONEN.forEach((inst, i) => {
-    const opt = document.createElement('option');
-    opt.value = i; opt.textContent = inst.name;
-    sel.appendChild(opt);
-  });
-}
-
-function onInstitutionChange() {
-  clearAccessError();
-  const i = parseInt(document.getElementById('access-institution').value);
-  const inst = INSTITUTIONEN[i];
-  if (!inst) return;
-  const info = document.getElementById('access-info');
-  info.textContent = `Zugelassene Domains: ${inst.domains.map(d => '@'+d).join(', ')}`;
-  info.style.display = 'block';
-}
-
 function clearAccessError() {
   document.getElementById('access-error').style.display = 'none';
   document.getElementById('access-info').style.display = 'none';
@@ -2851,6 +2807,7 @@ function zeigeAccessFehler(msg) {
 }
 
 function closeAccess() {
+  pendingExport = null;   // abgebrochenen Auswahl-Export verwerfen
   document.getElementById('access-overlay').style.display = 'none';
 }
 
@@ -2930,141 +2887,216 @@ function closeSamesite() {
   document.getElementById('samesite-overlay').style.display = 'none';
 }
 
-function pruefeZugang() {
-  const idxStr = document.getElementById('access-institution').value;
-  const mail   = (document.getElementById('access-email').value || '').trim().toLowerCase();
+// ══════════════════════════════════════════════
+// EXPORT-KERN (Kopie von lizenz-server/wasserzeichen-kern.mjs — nur für den Testmodus;
+// im Echtbetrieb setzt der Lizenz-Dienst das Wasserzeichen)
+// ══════════════════════════════════════════════
+const ExportKern = (() => {
+// ── Wasserzeichen 1 (unsichtbar im Text): Lizenz-ID als Zero-Width-Zeichen an das Feld "Quelle" gehängt
+const ZW0 = '​', ZW1 = '‌', ZW_START = '⁠';
 
-  if (idxStr === '') { zeigeAccessFehler('Bitte Institution auswählen.'); return; }
-  if (!mail)         { zeigeAccessFehler('Bitte E-Mail-Adresse eingeben.'); return; }
-
-  const inst = INSTITUTIONEN[parseInt(idxStr)];
-
-  // Anti-Missbrauch: Kontakt-Mail gesperrt
-  if (GESPERRTE_MAILS.has(mail)) {
-    zeigeAccessFehler('Diese E-Mail-Adresse kann nicht für den Download genutzt werden. Bitte eigene Institutsadresse verwenden.');
-    return;
-  }
-
-  // E-Mail-Format prüfen
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) {
-    zeigeAccessFehler('Bitte eine gültige E-Mail-Adresse eingeben.');
-    return;
-  }
-
-  // Domain prüfen
-  const domain = mail.split('@')[1];
-  const domainOk = inst.domains.some(d => domain === d || domain.endsWith('.' + d));
-  if (!domainOk) {
-    zeigeAccessFehler(`Diese E-Mail-Domain ist für ${inst.name} nicht zugelassen. Erwartet: ${inst.domains.map(d=>'@'+d).join(' oder ')}`);
-    return;
-  }
-
-  // Whitelist prüfen
-  if (!inst.whitelist.includes(mail)) {
-    zeigeAccessFehler(`Diese E-Mail-Adresse ist noch nicht freigeschaltet. Bitte Forschungsleiter um Freigabe bitten.`);
-    // Info zu Anfrage-Möglichkeit einblenden
-    const info = document.getElementById('access-info');
-    info.textContent = 'Tipp: Über "Zugang beantragen" können Sie eine vorausgefüllte Anfrage an Ihren Forschungsleiter senden.';
-    info.style.display = 'block';
-    return;
-  }
-
-  // Alles OK — Session speichern, Modal schließen, Download starten
-  speichereSession(mail, inst.name);
-  trackDownload(mail, inst.name);
-  document.getElementById('access-overlay').style.display = 'none';
-  fuehreDownloadAus();
+function fnv1a(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return h >>> 0;
 }
 
-// ── Anfrage-Workflow: vorausgefüllte Mail an Forschungsleiter ──
-function zugangsAnfrage() {
-  const idxStr = document.getElementById('access-institution').value;
-  const mail   = (document.getElementById('access-email').value || '').trim();
-
-  if (idxStr === '') { zeigeAccessFehler('Bitte zuerst Institution auswählen.'); return; }
-
-  const inst = INSTITUTIONEN[parseInt(idxStr)];
-  const an   = inst.kontakt || '';
-
-  const betreff = encodeURIComponent(`Download-Anfrage: ISPK Terrorismuskarte — ${inst.name}`);
-  const body    = encodeURIComponent(
-`Sehr geehrte/r Datenbeauftragte/r,
-
-ich beantrage Zugang zum Download des ISPK-Terrorismusdatensatzes.
-
-Meine E-Mail: ${mail || '[Bitte eintragen]'}
-Institution:  ${inst.name}
-Datum:        ${new Date().toLocaleDateString('de-DE')}
-
-Ich bitte Sie, meine E-Mail-Adresse für den Download freizuschalten.
-Der Datenbeauftragte beim ISPK kann die Freischaltung vornehmen unter:
-downloads@ispk-kiel.de
-
-Mit freundlichen Grüßen`
-  );
-
-  window.location.href = `mailto:${an}?subject=${betreff}&body=${body}`;
+function zeichenMarke(id) {
+  let s = ZW_START;
+  for (const b of new TextEncoder().encode(id)) for (let i = 7; i >= 0; i--) s += ((b >> i) & 1) ? ZW1 : ZW0;
+  return s;
 }
 
-// ── Tracking via Google Apps Script ──
-function trackDownload(mail, institution) {
-  if (!TRACKING_URL) return;
-  const payload = {
-    ts:          new Date().toISOString(),
-    institution,
-    mail_hash:   hashMail(mail),   // kein Klartext
-    filter_info: `${getFiltered().length} Einträge`,
-  };
-  // Fire-and-forget — kein await, kein Error-Handling nötig
-  fetch(TRACKING_URL, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify(payload),
-  }).catch(() => {}); // Tracking-Fehler nie an Nutzer zeigen
+function markeLesen(text) {
+  const out = [];
+  let pos = 0;
+  while ((pos = text.indexOf(ZW_START, pos)) !== -1) {
+    let bits = '', i = pos + 1;
+    while (i < text.length && (text[i] === ZW0 || text[i] === ZW1)) { bits += text[i] === ZW1 ? '1' : '0'; i++; }
+    const bytes = [];
+    for (let k = 0; k + 8 <= bits.length; k += 8) bytes.push(parseInt(bits.slice(k, k + 8), 2));
+    if (bytes.length) out.push(new TextDecoder().decode(new Uint8Array(bytes)));
+    pos = i;
+  }
+  return out;
 }
 
-// ── Tatsächlicher CSV-Download ──
-function fuehreDownloadAus() {
-  const data = getFiltered();
-  const hdr = ['Datum','Quelle','Quelle_URL','Region','Land','ISO3','Ort','Ort_Detail',
-    'Latitude','Longitude','Terror_Gruppe','Motivation','Dimension','Art','Mittel',
-    'Ziel','Ziel_Detail','Getötet_Ziv','Verletzt_Ziv','Entführt_Ziv',
-    'Getötet_SK','Verletzt_SK','Entführt_SK',
-    'Kommentar_Taktik','Kommentar_Ziel','Kommentar_Sachschäden','Kommentar_Sonstiges'];
-  const rows = data.map(d => [
+// ── Wasserzeichen 2 (robust gegen Text-Bereinigung): Koordinaten um 1–4 Hunderttausendstel Grad
+//    (ca. 1–4 m) verschoben. Der Versatz hängt nur von Lizenz-ID + Zeilenschlüssel ab und lässt
+//    sich daher später mit dem Original-Datensatz nachrechnen.
+const WM_SCHRITT = 1e-5;
+function jitterSchritt(h, shift) { const v = (h >>> shift) % 8; return v < 4 ? v - 4 : v - 3; } // -4..-1, 1..4
+function zeilenSchluessel(datum, ort, land) { return `${datum || ''}|${ort || ''}|${land || ''}`; }
+
+function wasserzeichenAnwenden(header, rows, lizenzId) {
+  const ix = n => header.indexOf(n);
+  const iLat = ix('Latitude'), iLon = ix('Longitude'), iDat = ix('Datum'), iOrt = ix('Ort'), iLand = ix('Land'), iQ = ix('Quelle');
+  const marke = zeichenMarke(lizenzId);
+  return rows.map(r => {
+    const z = r.slice();
+    const h = fnv1a(lizenzId + '|' + zeilenSchluessel(iDat >= 0 ? z[iDat] : '', iOrt >= 0 ? z[iOrt] : '', iLand >= 0 ? z[iLand] : ''));
+    if (iLat >= 0 && iLon >= 0) {
+      const lat = Number(z[iLat]), lon = Number(z[iLon]);
+      if (z[iLat] !== '' && z[iLon] !== '' && z[iLat] != null && z[iLon] != null && isFinite(lat) && isFinite(lon)) {
+        z[iLat] = Number((lat + jitterSchritt(h, 0) * WM_SCHRITT).toFixed(6));
+        z[iLon] = Number((lon + jitterSchritt(h, 8) * WM_SCHRITT).toFixed(6));
+      }
+    }
+    if (iQ >= 0) z[iQ] = String(z[iQ] || '') + marke;
+    return z;
+  });
+}
+
+// ── CSV (Semikolon, alles in Anführungszeichen, UTF-8 mit BOM — wie der bisherige Export)
+function baueCsv(header, rows) {
+  const q = v => `"${String(v || '').replace(/"/g, '""')}"`;
+  return '﻿' + [header.map(q).join(';'), ...rows.map(r => r.map(q).join(';'))].join('\n');
+}
+
+  return { wasserzeichenAnwenden, baueCsv };
+})();
+
+const EXPORT_KOPF = ['Datum','Quelle','Quelle_URL','Region','Land','ISO3','Ort','Ort_Detail',
+  'Latitude','Longitude','Terror_Gruppe','Motivation','Dimension','Art','Mittel',
+  'Ziel','Ziel_Detail','Getötet_Ziv','Verletzt_Ziv','Entführt_Ziv',
+  'Getötet_SK','Verletzt_SK','Entführt_SK',
+  'Kommentar_Taktik','Kommentar_Ziel','Kommentar_Sachschäden','Kommentar_Sonstiges'];
+
+function exportZeilen(data) {
+  return data.map(d => [
     d.datum instanceof Date ? d.datum.toISOString().slice(0,10) : '',
     d.quelle, d.quelle_url, d.region, d.land, d.ISO_3, d.ort, d.ort_detail, d.lat, d.lon,
     d.terroristische_gruppe, d.motiv_decoded, d.dimension_decoded, d.art_decoded, d.mittel_decoded,
     d.ziel_decoded, d.ziel_detail_decoded,
     d.tote_ziv, d.verl_ziv, d.entf_ziv, d.tote_sk, d.verl_sk, d.entf_sk,
     d.KOM_TAKTIK, d.KOM_ZIEL, d.KOM_SACHSCHÄDEN, d.KOM_SONSTIGES,
-  ].map(v => `"${String(v||'').replace(/"/g,'""')}"`).join(';'));
-
-  const csv = '\uFEFF' + [hdr.map(h=>`"${h}"`).join(';'), ...rows].join('\n');
-  const a   = document.createElement('a');
-  a.href    = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8;' }));
-  a.download = `ispk_terrorismus_${new Date().toISOString().slice(0,10)}_${data.length}Faelle.csv`;
-  a.click();
+  ].map(v => (v === undefined || v === null) ? '' : v));
 }
 
-// ── Öffentlicher Export-Einstieg (ersetzt altes exportCSV) ──
-function exportCSV() {
-  // Prüfe ob gültige Session vorhanden
-  const sessions = Object.keys(localStorage).filter(k => k.startsWith('ispk_access_'));
-  for (const key of sessions) {
-    try {
-      const { ts, institution } = JSON.parse(localStorage.getItem(key));
-      if ((Date.now() - ts) < SESSION_TAGE * 86400000) {
-        // Gültige Session — direkt downloaden + tracken
-        trackDownload(key.replace('ispk_access_',''), institution);
-        fuehreDownloadAus();
-        return;
-      }
-    } catch(e) {}
+// ── Gemerkter Zugangscode ──
+const CODE_KEY = 'ispk_lizenz_code';
+function holeGespeicherterCode() {
+  try {
+    const { code, ts } = JSON.parse(localStorage.getItem(CODE_KEY) || 'null') || {};
+    if (code && (Date.now() - ts) < CODE_MERKEN_TAGE * 86400000) return code;
+  } catch (e) {}
+  return null;
+}
+function speichereCode(code) { try { localStorage.setItem(CODE_KEY, JSON.stringify({ code, ts: Date.now() })); } catch (e) {} }
+function vergesseCode() { try { localStorage.removeItem(CODE_KEY); } catch (e) {} }
+
+// Auswahl-Export wartet hier, falls erst der Zugangscode abgefragt werden muss
+let pendingExport = null;   // { data, label } oder null (= gefilterte Gesamtansicht)
+let exportLaeuft = false;
+
+// ── Öffentliche Einstiege ──
+function exportCSV() { exportDaten(null); }
+
+// data = null → gefilterte Gesamtansicht, sonst genau diese Ereignisse
+// (z.B. eine Auswahl oder Auswahl-Gruppe aus der Statistik).
+function exportDaten(data, label) {
+  pendingExport = data ? { data, label } : null;
+  const code = holeGespeicherterCode();
+  if (code) starteExport(code, false);
+  else zeigeZugangsModal();
+}
+
+function zeigeZugangsModal(fehler) {
+  const ov = document.getElementById('access-overlay');
+  ov.style.display = 'flex';
+  clearAccessError();
+  if (fehler) zeigeAccessFehler(fehler);
+  else if (!LIZENZ_API_URL) {
+    const info = document.getElementById('access-info');
+    info.textContent = 'TESTMODUS — der Code wird nur im Browser geprüft (kein echter Schutz). Testcode: ' + Object.keys(TEST_LIZENZEN)[0];
+    info.style.display = 'block';
   }
-  // Keine gültige Session — Modal öffnen
-  initAccessModal();
-  document.getElementById('access-overlay').style.display = 'flex';
+  const t = document.getElementById('access-terms');
+  if (t) t.innerHTML = NUTZUNGSBEDINGUNGEN_URL ? `<a href="${NUTZUNGSBEDINGUNGEN_URL}" target="_blank" rel="noopener" style="color:var(--blue)">Nutzungsbedingungen</a>` : '';
+  const input = document.getElementById('access-code');
+  setTimeout(() => input && input.focus(), 50);
+}
+
+function pruefeZugang() {
+  const code = (document.getElementById('access-code').value || '').trim();
+  if (!code) { zeigeAccessFehler('Bitte Zugangscode eingeben.'); return; }
+  starteExport(code, true);
+}
+
+// Fehler mit HTTP-Status (vom Server oder aus dem Testmodus)
+function exportFehler(status, message) { const e = new Error(message); e.status = status; return e; }
+
+async function sendeAnLizenzDienst(code, header, rows, label) {
+  let res;
+  try {
+    res = await fetch(LIZENZ_API_URL, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, header, rows, label }),
+    });
+  } catch (e) { throw exportFehler(0, 'Der Lizenz-Dienst ist gerade nicht erreichbar. Bitte später erneut versuchen.'); }
+  let body = {};
+  try { body = await res.json(); } catch (e) {}
+  if (!res.ok) throw exportFehler(res.status, body.fehler || `Fehler vom Lizenz-Dienst (${res.status}).`);
+  return body;
+}
+
+// Testmodus: Prüfung und Wasserzeichen lokal — gleiche Ergebnisse wie der Lizenz-Dienst, nur ohne Schutz
+function lokalerTestExport(code, header, rows, label) {
+  const lizenz = TEST_LIZENZEN[code.trim().toUpperCase()];
+  if (!lizenz) throw exportFehler(401, 'Zugangscode ungültig.');
+  const csv = ExportKern.baueCsv(header, ExportKern.wasserzeichenAnwenden(header, rows, lizenz.id));
+  const labelTeil = label ? '_' + label.replace(/[^A-Za-z0-9ÄÖÜäöüß]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) : '';
+  return { ok: true, csv, hinweis: '', lizenznehmer: lizenz.name,
+    filename: `ispk_terrorismus_${new Date().toISOString().slice(0,10)}${labelTeil}_${rows.length}Faelle.csv` };
+}
+
+async function starteExport(code, vomModal) {
+  if (exportLaeuft) return;
+  const p = pendingExport;
+  const data = p ? p.data : getFiltered();
+  if (!data.length) { alert('Keine Fälle zum Exportieren — bitte Filter oder Auswahl prüfen.'); return; }
+
+  exportLaeuft = true;
+  const btn = document.getElementById('access-btn');
+  if (vomModal && btn) { btn.disabled = true; btn.textContent = 'PRÜFE…'; }
+  try {
+    const header = EXPORT_KOPF, rows = exportZeilen(data), label = p ? p.label : '';
+    const res = LIZENZ_API_URL ? await sendeAnLizenzDienst(code, header, rows, label)
+                               : lokalerTestExport(code, header, rows, label);
+    // Erfolg: Code merken (falls gewünscht), Fenster schließen, Datei herunterladen
+    if (vomModal) { if (document.getElementById('access-merken').checked) speichereCode(code); else vergesseCode(); }
+    pendingExport = null;
+    document.getElementById('access-overlay').style.display = 'none';
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([res.csv], { type: 'text/csv;charset=utf-8;' }));
+    a.download = res.filename;
+    a.click();
+    if (res.hinweis) alert(res.hinweis);
+  } catch (e) {
+    // Ungültiger/gesperrter/abgelaufener Code: gemerkten Code verwerfen und neu abfragen
+    if (e.status === 401 || e.status === 403) vergesseCode();
+    zeigeZugangsModal(e.message || 'Export fehlgeschlagen.');
+  } finally {
+    exportLaeuft = false;
+    if (btn) { btn.disabled = false; btn.textContent = 'DOWNLOAD STARTEN'; }
+  }
+}
+
+// ── Anfrage-Workflow: vorausgefüllte Mail an das Institut ──
+function zugangsAnfrage() {
+  const betreff = encodeURIComponent('Zugangscode-Anfrage: ISPK Terrorismuskarte');
+  const body = encodeURIComponent(
+`Guten Tag,
+
+ich möchte einen Zugangscode für den Download des ISPK-Terrorismusdatensatzes anfragen.
+
+Name:         [bitte eintragen]
+Organisation: [bitte eintragen]
+Verwendungszweck: [bitte eintragen]
+Datum:        ${new Date().toLocaleDateString('de-DE')}
+
+Mit freundlichen Grüßen`);
+  window.location.href = `mailto:${LIZENZ_KONTAKT}?subject=${betreff}&body=${body}`;
 }
 
 // ══════════════════════════════════════════════
@@ -3611,7 +3643,7 @@ function submitFeedback(typ) {
 
 
 // ══════════════════════════════════════════════
-// AUSWAHL: Shift+Ziehen (Bereich) / Shift+Klick (einzelne Punkte) → Mini-Statistik
+// AUSWAHL: Shift+Ziehen (Bereich) / Strg- bzw. Cmd+Klick (einzelne Punkte) → Mini-Statistik
 // ══════════════════════════════════════════════
 const selIds = new Set();   // IDs der aktuell markierten Ereignisse
 let selRect = null;         // gestrichelter Rahmen des zuletzt gezogenen Bereichs
@@ -3620,14 +3652,28 @@ function removeSelRect() {
   if (selRect) { map.removeLayer(selRect); selRect = null; }
 }
 
+// Einzelauswahl-Taste: Strg (Windows/Linux) bzw. Cmd (Mac).
+// Die fn-Taste kann ein Browser technisch nicht auslesen, und Strg+Klick wird auf dem Mac
+// vom System als Rechtsklick behandelt — Cmd ist dort das übliche Gegenstück zu Strg.
+function istEinzelAuswahl(ev) {
+  return !!ev && (ev.ctrlKey || ev.metaKey);
+}
+
+// Verfeinerungs-Verlauf (Klick auf Kategorien in der Statistik) zurücksetzen
+const selHistory = [];   // frühere Auswahl-Stände (für „Zurück")
+const selFilter  = [];   // Beschriftungen der angewendeten Eingrenzungen
+function selResetVerfeinerung() { selHistory.length = 0; selFilter.length = 0; }
+
 function toggleSel(id) {
   if (selIds.has(id)) selIds.delete(id); else selIds.add(id);
+  selResetVerfeinerung();
   removeSelRect();      // Rahmen passt nach Einzel-Änderung nicht mehr zur Auswahl
   applySelection();
 }
 
 function clearSel() {
   selIds.clear();
+  selResetVerfeinerung();
   removeSelRect();
   applySelection();
 }
@@ -3656,6 +3702,54 @@ function zaehle(liste, fn) {
   return Object.entries(c).sort((a, b) => b[1] - a[1]);
 }
 
+// Kategorien der Statistik: Anzeigename, Wertfunktion, Farbe
+const SEL_DIMS = {
+  motiv:  { titel: 'Motivation', wert: d => d.motiv_decoded || 'Nicht bekannt', farbe: n => mColor(n),               max: 6 },
+  art:    { titel: 'Art',        wert: d => d.art_decoded   || 'Nicht bekannt', farbe: n => ART_COLOR[n] || '#7a7f9a', max: 5 },
+  land:   { titel: 'Land',       wert: d => d.land          || 'Nicht bekannt', farbe: () => '#7a7f9a',               max: 5 },
+  gruppe: { titel: 'Gruppe',     wert: d => d.terroristische_gruppe || 'Nicht bekannt', farbe: () => '#7a7f9a',        max: 3 },
+};
+let selCats = {};                       // dim → [Namen] in Anzeigereihenfolge (für Klick per Index)
+const selAlleZeigen = { land: false, gruppe: false };
+
+function selDaten() { return ALL_DATA.filter(d => selIds.has(d.id)); }
+function selTeil(dim, idx) {
+  const name = (selCats[dim] || [])[idx];
+  if (name === undefined) return { name: null, liste: [] };
+  return { name, liste: selDaten().filter(d => SEL_DIMS[dim].wert(d) === name) };
+}
+
+// Klick auf eine Kategorie: Auswahl auf genau diese Fälle eingrenzen
+function selVerfeinere(dim, idx) {
+  const { name, liste } = selTeil(dim, idx);
+  if (!liste.length) return;
+  selHistory.push(new Set(selIds));
+  selFilter.push(`${SEL_DIMS[dim].titel}: ${name}`);
+  selIds.clear(); liste.forEach(d => selIds.add(d.id));
+  removeSelRect();     // der Rahmen beschreibt die eingegrenzte Auswahl nicht mehr
+  applySelection();
+}
+
+function selZurueck() {
+  const vorher = selHistory.pop();
+  if (!vorher) return;
+  selFilter.pop();
+  selIds.clear(); vorher.forEach(id => selIds.add(id));
+  applySelection();
+}
+
+function selToggleAlle(dim) { selAlleZeigen[dim] = !selAlleZeigen[dim]; renderSelPanel(); }
+
+// Export (hinter derselben Zugangsprüfung wie der normale Download)
+function selExportAlle() {
+  const liste = selDaten();
+  if (liste.length) exportDaten(liste, ['Auswahl', ...selFilter.map(f => f.split(': ')[1])].join('_'));
+}
+function selExportTeil(dim, idx) {
+  const { name, liste } = selTeil(dim, idx);
+  if (liste.length) exportDaten(liste, `Auswahl_${SEL_DIMS[dim].titel}_${name}`);
+}
+
 function renderSelPanel() {
   let p = document.getElementById('sel-panel');
   if (!p) {
@@ -3667,7 +3761,7 @@ function renderSelPanel() {
   }
   if (!selIds.size) { p.style.display = 'none'; return; }
 
-  const sel = ALL_DATA.filter(d => selIds.has(d.id));
+  const sel = selDaten();
   const n = sel.length;
   const tote = sel.reduce((s, d) => s + (d.tote_ziv || 0) + (d.tote_sk || 0), 0);
   const verl = sel.reduce((s, d) => s + (d.verl_ziv || 0) + (d.verl_sk || 0), 0);
@@ -3679,19 +3773,31 @@ function renderSelPanel() {
     zeitraum = fmt(lo) === fmt(hi) ? fmt(lo) : `${fmt(lo)} – ${fmt(hi)}`;
   }
 
-  const balken = (paare, farbeFn, max) => paare.slice(0, max).map(([name, c]) => `
-    <div class="sel-row">
-      <span class="sel-dot" style="background:${farbeFn(name)}"></span>
-      <span class="sel-name" title="${escHtml(name)}">${escHtml(name)}</span>
-      <span class="sel-bar"><span class="sel-bar-fill" style="display:block;width:${Math.round(c / n * 100)}%;background:${farbeFn(name)}"></span></span>
-      <span class="sel-cnt">${c}</span>
-    </div>`).join('');
+  // Ein Abschnitt je Kategorie: jede Zeile ist klickbar (= eingrenzen) und hat einen eigenen Export
+  selCats = {};
+  const abschnitt = dim => {
+    const def = SEL_DIMS[dim];
+    const paare = zaehle(sel, def.wert);
+    selCats[dim] = paare.map(([name]) => name);
+    const limit = selAlleZeigen[dim] ? paare.length : def.max;
+    const zeilen = paare.slice(0, limit).map(([name, c], i) => `
+      <div class="sel-row klick" onclick="selVerfeinere('${dim}',${i})" title="Klicken: Auswahl auf diese ${c} Fälle eingrenzen">
+        <span class="sel-dot" style="background:${def.farbe(name)}"></span>
+        <span class="sel-name">${escHtml(name)}</span>
+        <span class="sel-bar"><span class="sel-bar-fill" style="display:block;width:${Math.round(c / n * 100)}%;background:${def.farbe(name)}"></span></span>
+        <span class="sel-cnt">${c}</span>
+        <button class="sel-dl" onclick="event.stopPropagation();selExportTeil('${dim}',${i})" title="Diese ${c} Fälle als CSV exportieren">↓</button>
+      </div>`).join('');
+    const mehr = paare.length > def.max
+      ? `<div class="sel-mehr" onclick="selToggleAlle('${dim}')">${selAlleZeigen[dim] ? '− weniger anzeigen' : `+ ${paare.length - def.max} weitere anzeigen`}</div>` : '';
+    return `<div class="sel-sub">${def.titel}${paare.length > 1 ? ` (${paare.length})` : ''}</div>${zeilen}${mehr}`;
+  };
 
-  const motiv  = zaehle(sel, d => d.motiv_decoded);
-  const art    = zaehle(sel, d => d.art_decoded);
-  const laender = zaehle(sel, d => d.land);
-  const gruppen = zaehle(sel, d => d.terroristische_gruppe);
-  const neutral = () => '#7a7f9a';
+  const kette = selFilter.length ? `
+    <div class="sel-kette">
+      <button class="sel-zurueck" onclick="selZurueck()">← ZURÜCK</button>
+      <span>Eingegrenzt auf: ${selFilter.map(escHtml).join(' › ')}</span>
+    </div>` : '';
 
   p.innerHTML = `
     <div class="sel-hdr">
@@ -3703,11 +3809,11 @@ function renderSelPanel() {
       <div class="sel-kpi"><div class="sel-kpi-v" style="color:#ff5a3c">${tote}</div><div class="sel-kpi-l">Getötet</div></div>
       <div class="sel-kpi"><div class="sel-kpi-v" style="color:#f0b429">${verl}</div><div class="sel-kpi-l">Verletzt</div></div>
     </div>
+    <button class="sel-export" onclick="selExportAlle()">↓ AUSWAHL ALS CSV EXPORTIEREN</button>
+    ${kette}
     <div class="sel-range">Zeitraum: ${zeitraum}</div>
-    <div class="sel-sub">Nach Motivation</div>${balken(motiv, mColor, 6)}
-    <div class="sel-sub">Nach Art</div>${balken(art, name => ART_COLOR[name] || '#7a7f9a', 5)}
-    <div class="sel-sub">Länder${laender.length > 5 ? ` (Top 5 von ${laender.length})` : ''}</div>${balken(laender, neutral, 5)}
-    <div class="sel-sub">Gruppen${gruppen.length > 3 ? ` (Top 3 von ${gruppen.length})` : ''}</div>${balken(gruppen, neutral, 3)}`;
+    <div class="sel-tipp">Zeile anklicken = auf diese Fälle eingrenzen · ↓ = nur diese Gruppe exportieren</div>
+    ${abschnitt('motiv')}${abschnitt('art')}${abschnitt('land')}${abschnitt('gruppe')}`;
   p.style.display = 'block';
 }
 
@@ -3755,6 +3861,7 @@ function renderSelPanel() {
     const b = map.containerPointToLatLng([Math.max(d.x0, d.x1), Math.min(d.y0, d.y1)]);
     const bounds = L.latLngBounds(a, b);
     selIds.clear();
+    selResetVerfeinerung();
     getFiltered().forEach(e => { if (bounds.contains([e.lat, e.lon])) selIds.add(e.id); });
     removeSelRect();
     if (selIds.size) {
