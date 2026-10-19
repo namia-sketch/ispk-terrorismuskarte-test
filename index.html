@@ -615,6 +615,47 @@ header h1{font-size:13px;font-weight:600;letter-spacing:.03em;}
 }
 .popup-more::-webkit-details-marker{display:none;}
 .popup-more:hover{background:rgba(58,123,213,.18);border-color:var(--blue);}
+
+/* ── Menü einklappbar ── */
+.sidebar{transition:width .25s ease, min-width .25s ease;}
+.sidebar.collapsed{width:0;min-width:0;border-right:none;overflow:hidden;}
+.sb-toggle a{font-size:12px;cursor:pointer;}
+
+/* ── Legende in der Größe ziehbar (Griff oben links) ── */
+.legend-resize{
+  position:absolute;top:0;left:0;width:18px;height:18px;cursor:nwse-resize;z-index:2;
+  touch-action:none;border-top-left-radius:8px;opacity:.55;
+  background:linear-gradient(135deg,var(--muted) 0,var(--muted) 2px,transparent 2px,transparent 5px,var(--muted) 5px,var(--muted) 7px,transparent 7px);
+}
+.legend-resize:hover{opacity:1;}
+.legend-hint{font-size:10.5px;color:var(--muted);line-height:1.5;}
+.legend-hint b{color:var(--text);font-family:var(--mono);font-weight:600;}
+
+/* ── Shift-Auswahl: Ziehrahmen + Statistik-Panel ── */
+.sel-drag-box{position:absolute;z-index:1100;border:1.5px dashed #6aa5ff;background:rgba(58,123,213,.14);pointer-events:none;}
+.sel-panel{
+  position:absolute;top:10px;left:56px;z-index:1000;width:264px;
+  max-height:calc(100% - 70px);overflow-y:auto;
+  background:var(--panel);border:1px solid var(--border2);border-radius:6px;
+  box-shadow:0 10px 32px rgba(0,0,0,.55);padding:11px 13px 12px;
+  font-size:11px;color:var(--text);
+}
+.sel-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.sel-title{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--text);}
+.sel-close{background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--dim);font-family:var(--mono);font-size:9px;padding:2px 7px;cursor:pointer;letter-spacing:.05em;}
+.sel-close:hover{color:var(--text);border-color:var(--border2);}
+.sel-kpis{display:flex;gap:6px;margin-bottom:9px;}
+.sel-kpi{flex:1;background:#000;border:1px solid var(--border);border-radius:4px;padding:6px 4px;text-align:center;}
+.sel-kpi-v{font-family:var(--mono);font-size:16px;font-weight:700;line-height:1.1;}
+.sel-kpi-l{font-size:9px;color:var(--muted);margin-top:2px;}
+.sel-sub{font-family:var(--mono);font-size:8.5px;font-weight:600;letter-spacing:.1em;color:var(--muted);margin:9px 0 5px;text-transform:uppercase;}
+.sel-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+.sel-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.sel-name{flex:0 1 46%;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sel-bar{flex:1;height:5px;background:var(--panel2);border-radius:2px;overflow:hidden;}
+.sel-bar-fill{height:100%;border-radius:2px;}
+.sel-cnt{font-family:var(--mono);font-size:10px;color:var(--dim);min-width:22px;text-align:right;}
+.sel-range{font-family:var(--mono);font-size:10px;color:var(--dim);}
 </style>
 </head>
 <body>
@@ -911,6 +952,10 @@ header h1{font-size:13px;font-weight:600;letter-spacing:.03em;}
       </span>
     </div>
     <div class="acc-body" id="acc-body-region">
+      <div class="month-actions" style="margin-bottom:6px;">
+        <button class="month-act-btn" onclick="selectAllCountries()">ALLE</button>
+        <button class="month-act-btn" onclick="clearCountries()">KEINE</button>
+      </div>
       <div id="region-filter-wrap">
         <!-- Wird dynamisch befüllt wenn Daten geladen sind -->
         <div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:4px 0;">Wird nach Datenladen befüllt.</div>
@@ -1011,6 +1056,7 @@ header h1{font-size:13px;font-weight:600;letter-spacing:.03em;}
 
 <!-- Legende -->
 <div class="legend" id="legend">
+  <div class="legend-resize" id="legend-resize" title="Ziehen = Legende größer/kleiner · Doppelklick = zurücksetzen"></div>
   <div class="legend-title">
     <span>LEGENDE</span>
     <span class="legend-toggle" onclick="toggleLegend()" id="legend-toggle-btn">▼</span>
@@ -1041,6 +1087,10 @@ header h1{font-size:13px;font-weight:600;letter-spacing:.03em;}
         <div class="legend-dot" style="background:#7a7f9a;"></div>
         <span class="legend-label">Gemischte Motivation</span>
       </div>
+    </div>
+    <div class="legend-section">
+      <div class="legend-sec-label">AUSWAHL</div>
+      <div class="legend-hint"><b>⇧ Shift + Ziehen</b> markiert einen Bereich,<br><b>⇧ Shift + Klick</b> einzelne Punkte — mit Mini-Statistik.</div>
     </div>
   </div>
 </div>
@@ -1326,6 +1376,7 @@ const map = L.map('map', {
                               // einer gespiegelten Kopie wäre die Karte sonst leer ("zwei Welten"-Bug)
   maxBounds: [[-90, -180], [90, 180]], // hart auf eine einzige Weltkarte begrenzen
   maxBoundsViscosity: 1.0,    // "klebt" am Rand statt darüber hinauszurutschen
+  boxZoom: false,             // Shift+Ziehen gehört jetzt der Punkt-Auswahl (statt Rahmen-Zoom)
 });
 // ── Kartenkacheln: OpenStreetMap Standard-Tiles, dauerhaft kostenlos ohne API-Key.
 // CartoDB (vorheriger Anbieter) verlangt seit Ende August 2026 einen API-Key
@@ -1381,6 +1432,12 @@ function initClusterGroup() {
   // Eigene, sanfte Zoom-Animation beim Klick auf einen Cluster —
   // identisches Timing wie beim Anklicken einzelner Ereignisse (selectItem)
   clusterGroup.on('clusterclick', e => {
+    // Shift+Klick auf einen Cluster: alle enthaltenen Ereignisse zur Auswahl hinzufügen
+    if (e.originalEvent && e.originalEvent.shiftKey) {
+      e.layer.getAllChildMarkers().forEach(m => selIds.add(m._ispkId));
+      removeSelRect(); applySelection();
+      return;
+    }
     // WICHTIG: Klickt man mehrfach schnell hintereinander auf Cluster (z.B. weil
     // sich nach jedem Klick sofort ein neuer, kleinerer Cluster unter dem Mauszeiger
     // zeigt), lief bisher jede neue Zoom-Berechnung auf Basis von map.getZoom()
@@ -1422,11 +1479,14 @@ function initClusterGroup() {
   });
 }
 
-function makeIcon(color, sz, highlight = false) {
+function makeIcon(color, sz, highlight = false, selected = false) {
   const s = sz + 8;
   const ring = highlight ? `<circle cx="${s/2}" cy="${s/2}" r="${sz/2+4}" fill="none" stroke="${color}" stroke-width="2" opacity="0.6" class="serie-pulse"/>` : '';
+  // Ausgewählte Punkte (Shift-Auswahl): weißer Ring um den Punkt
+  const selRing = selected ? `<circle cx="${(s+8)/2}" cy="${(s+8)/2}" r="${sz/2+5}" fill="rgba(255,255,255,.12)" stroke="#ffffff" stroke-width="2"/>` : '';
   return L.divIcon({ className: '',
     html: `<svg xmlns="http://www.w3.org/2000/svg" width="${s+8}" height="${s+8}" viewBox="0 0 ${s+8} ${s+8}">
+      ${selRing}
       ${ring}
       <circle cx="${(s+8)/2}" cy="${(s+8)/2}" r="${sz/2+2}" fill="${color}" opacity="0.18"/>
       <circle cx="${(s+8)/2}" cy="${(s+8)/2}" r="${sz/2}" fill="${color}" opacity="0.88" stroke="#0d0e12" stroke-width="1.5"/>
@@ -2281,17 +2341,39 @@ function renderMarkers(data) {
   if (!clusterGroup) return;
   clusterGroup.clearLayers();
 
+  // Auswahl auf die aktuell gefilterten Ereignisse beschränken
+  if (selIds.size) {
+    const gueltig = new Set(data.map(d => d.id));
+    [...selIds].forEach(id => { if (!gueltig.has(id)) selIds.delete(id); });
+    if (!selIds.size) removeSelRect();
+  }
+
   data.forEach(d => {
     const isHighlighted = !!activeSerie;
     // Punktgröße: bei Org-Serien-Ansicht nach Opferzahl, sonst Standard
     const sz = mSize(d);
-    const icon = makeIcon(mColor(d.motiv_decoded), sz, isHighlighted);
+    const istGewaehlt = selIds.has(d.id);
+    const icon = makeIcon(mColor(d.motiv_decoded), sz, isHighlighted, istGewaehlt);
     const m = L.marker([d.lat, d.lon], { icon })
       .bindPopup(buildPopup(d), { maxWidth: 380, autoPan: true, autoPanPadding: [30, 30] });
-    m.on('click', () => selectItem(d.id));
+    // Shift+Klick soll KEIN Popup öffnen, sondern den Punkt zur Auswahl hinzufügen/entfernen:
+    // den eingebauten Popup-Öffner durch eine Variante ersetzen, die Shift-Klicks ignoriert.
+    const popupOeffner = m._openPopup;
+    m.off('click', popupOeffner);
+    m.on('click', function (ev) {
+      if (ev.originalEvent && ev.originalEvent.shiftKey) return;
+      popupOeffner.call(m, ev);
+    });
+    m.on('click', ev => {
+      if (ev.originalEvent && ev.originalEvent.shiftKey) { toggleSel(d.id); return; }
+      selectItem(d.id);
+    });
     m._ispkId = d.id;
+    m._ispkD = d;
+    m._sel = istGewaehlt;
     clusterGroup.addLayer(m);
   });
+  renderSelPanel();
 }
 
 
@@ -3379,6 +3461,23 @@ function clearMonths() {
 // ══════════════════════════════════════════════
 let globalCountries = new Set(); // leer = alle Länder
 
+// "Keine": Leer bedeutet beim Raumfilter "alle Länder", deshalb wird "keine" über einen
+// Platzhalter-Eintrag abgebildet, der auf kein echtes Land passt → es bleibt nichts übrig.
+// (Sobald man wieder ein Land anklickt, bleibt der Platzhalter harmlos im Set; wählt man
+//  alle Länder einzeln an, wird das Set ohnehin komplett zurückgesetzt.)
+const KEIN_LAND = '__keine__';
+
+function selectAllCountries() {
+  globalCountries.clear();
+  renderRegionFilter(); filterData();
+}
+
+function clearCountries() {
+  globalCountries.clear();
+  globalCountries.add(KEIN_LAND);
+  renderRegionFilter(); filterData();
+}
+
 function renderRegionFilter() {
   const wrap = document.getElementById('region-filter-wrap');
   if (!wrap) return;
@@ -3452,8 +3551,10 @@ function renderRegionFilter() {
 // FEEDBACK / REPORT-FUNKTION
 // ══════════════════════════════════════════════
 
-// Ziel-Mail für Feedback — anpassen falls gewünscht
-const FEEDBACK_MAIL = 'feedback@ispk-kiel.de';
+// Ziel-Mail für Feedback.
+// TESTWERT (Proton-Adresse von Malte) — vor dem produktiven Einsatz auf die echte
+// ISPK-Adresse ändern, z.B. 'feedback@ispk-kiel.de'.
+const FEEDBACK_MAIL = 'malte.nami01@proton.me';
 
 function openFeedback() {
   document.getElementById('feedback-overlay').style.display = 'flex';
@@ -3508,6 +3609,232 @@ function submitFeedback(typ) {
   document.getElementById('feedback-success').style.display = 'block';
 }
 
+
+// ══════════════════════════════════════════════
+// AUSWAHL: Shift+Ziehen (Bereich) / Shift+Klick (einzelne Punkte) → Mini-Statistik
+// ══════════════════════════════════════════════
+const selIds = new Set();   // IDs der aktuell markierten Ereignisse
+let selRect = null;         // gestrichelter Rahmen des zuletzt gezogenen Bereichs
+
+function removeSelRect() {
+  if (selRect) { map.removeLayer(selRect); selRect = null; }
+}
+
+function toggleSel(id) {
+  if (selIds.has(id)) selIds.delete(id); else selIds.add(id);
+  removeSelRect();      // Rahmen passt nach Einzel-Änderung nicht mehr zur Auswahl
+  applySelection();
+}
+
+function clearSel() {
+  selIds.clear();
+  removeSelRect();
+  applySelection();
+}
+
+// Icons der Marker an den Auswahlzustand anpassen (funktioniert auch für geclusterte Marker)
+function applySelection() {
+  if (clusterGroup) {
+    clusterGroup.getLayers().forEach(m => {
+      const soll = selIds.has(m._ispkId);
+      if (m._sel === soll || !m._ispkD) return;
+      m._sel = soll;
+      m.setIcon(makeIcon(mColor(m._ispkD.motiv_decoded), mSize(m._ispkD), !!activeSerie, soll));
+    });
+  }
+  renderSelPanel();
+}
+
+function escHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+}
+
+// Häufigkeiten zählen → absteigend sortierte [Name, Anzahl]-Paare
+function zaehle(liste, fn) {
+  const c = {};
+  liste.forEach(d => { const k = fn(d) || 'Nicht bekannt'; c[k] = (c[k] || 0) + 1; });
+  return Object.entries(c).sort((a, b) => b[1] - a[1]);
+}
+
+function renderSelPanel() {
+  let p = document.getElementById('sel-panel');
+  if (!p) {
+    p = document.createElement('div');
+    p.id = 'sel-panel'; p.className = 'sel-panel'; p.style.display = 'none';
+    map.getContainer().appendChild(p);
+    L.DomEvent.disableClickPropagation(p);
+    L.DomEvent.disableScrollPropagation(p);
+  }
+  if (!selIds.size) { p.style.display = 'none'; return; }
+
+  const sel = ALL_DATA.filter(d => selIds.has(d.id));
+  const n = sel.length;
+  const tote = sel.reduce((s, d) => s + (d.tote_ziv || 0) + (d.tote_sk || 0), 0);
+  const verl = sel.reduce((s, d) => s + (d.verl_ziv || 0) + (d.verl_sk || 0), 0);
+  const daten = sel.map(d => d.datum).filter(x => x instanceof Date && !isNaN(x));
+  let zeitraum = '—';
+  if (daten.length) {
+    const fmt = x => x.toLocaleDateString('de-DE', { month: '2-digit', year: 'numeric' });
+    const lo = new Date(Math.min(...daten)), hi = new Date(Math.max(...daten));
+    zeitraum = fmt(lo) === fmt(hi) ? fmt(lo) : `${fmt(lo)} – ${fmt(hi)}`;
+  }
+
+  const balken = (paare, farbeFn, max) => paare.slice(0, max).map(([name, c]) => `
+    <div class="sel-row">
+      <span class="sel-dot" style="background:${farbeFn(name)}"></span>
+      <span class="sel-name" title="${escHtml(name)}">${escHtml(name)}</span>
+      <span class="sel-bar"><span class="sel-bar-fill" style="display:block;width:${Math.round(c / n * 100)}%;background:${farbeFn(name)}"></span></span>
+      <span class="sel-cnt">${c}</span>
+    </div>`).join('');
+
+  const motiv  = zaehle(sel, d => d.motiv_decoded);
+  const art    = zaehle(sel, d => d.art_decoded);
+  const laender = zaehle(sel, d => d.land);
+  const gruppen = zaehle(sel, d => d.terroristische_gruppe);
+  const neutral = () => '#7a7f9a';
+
+  p.innerHTML = `
+    <div class="sel-hdr">
+      <span class="sel-title">AUSWAHL</span>
+      <button class="sel-close" onclick="clearSel()">✕ AUFHEBEN</button>
+    </div>
+    <div class="sel-kpis">
+      <div class="sel-kpi"><div class="sel-kpi-v" style="color:#6aa5ff">${n}</div><div class="sel-kpi-l">Ereignisse</div></div>
+      <div class="sel-kpi"><div class="sel-kpi-v" style="color:#ff5a3c">${tote}</div><div class="sel-kpi-l">Getötet</div></div>
+      <div class="sel-kpi"><div class="sel-kpi-v" style="color:#f0b429">${verl}</div><div class="sel-kpi-l">Verletzt</div></div>
+    </div>
+    <div class="sel-range">Zeitraum: ${zeitraum}</div>
+    <div class="sel-sub">Nach Motivation</div>${balken(motiv, mColor, 6)}
+    <div class="sel-sub">Nach Art</div>${balken(art, name => ART_COLOR[name] || '#7a7f9a', 5)}
+    <div class="sel-sub">Länder${laender.length > 5 ? ` (Top 5 von ${laender.length})` : ''}</div>${balken(laender, neutral, 5)}
+    <div class="sel-sub">Gruppen${gruppen.length > 3 ? ` (Top 3 von ${gruppen.length})` : ''}</div>${balken(gruppen, neutral, 3)}`;
+  p.style.display = 'block';
+}
+
+// Shift+Ziehen: Rahmen aufziehen, beim Loslassen alle (gefilterten) Ereignisse darin markieren.
+// Capture-Phase, damit Leaflet/Marker den Mausdruck nicht für Karten-Verschieben nutzen.
+(function initShiftAuswahl() {
+  const mapEl = map.getContainer();
+  let drag = null;
+
+  mapEl.addEventListener('mousedown', ev => {
+    if (!ev.shiftKey || ev.button !== 0) return;
+    if (ev.target.closest('.leaflet-control, .sel-panel, .leaflet-popup')) return;
+    const r = mapEl.getBoundingClientRect();
+    drag = { x0: ev.clientX - r.left, y0: ev.clientY - r.top, x1: 0, y1: 0, moved: false, box: null };
+    drag.x1 = drag.x0; drag.y1 = drag.y0;
+    ev.preventDefault();    // verhindert Textmarkierung während des Ziehens
+    ev.stopPropagation();
+  }, true);
+
+  document.addEventListener('mousemove', ev => {
+    if (!drag) return;
+    const r = mapEl.getBoundingClientRect();
+    drag.x1 = Math.max(0, Math.min(r.width,  ev.clientX - r.left));
+    drag.y1 = Math.max(0, Math.min(r.height, ev.clientY - r.top));
+    if (!drag.moved && Math.hypot(drag.x1 - drag.x0, drag.y1 - drag.y0) > 5) {
+      drag.moved = true;
+      drag.box = document.createElement('div');
+      drag.box.className = 'sel-drag-box';
+      mapEl.appendChild(drag.box);
+    }
+    if (drag.box) {
+      drag.box.style.left   = Math.min(drag.x0, drag.x1) + 'px';
+      drag.box.style.top    = Math.min(drag.y0, drag.y1) + 'px';
+      drag.box.style.width  = Math.abs(drag.x1 - drag.x0) + 'px';
+      drag.box.style.height = Math.abs(drag.y1 - drag.y0) + 'px';
+    }
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!drag) return;
+    const d = drag; drag = null;
+    if (d.box) d.box.remove();
+    if (!d.moved) return;   // nur Klick → übernimmt der Shift+Klick-Handler der Marker
+    const a = map.containerPointToLatLng([Math.min(d.x0, d.x1), Math.max(d.y0, d.y1)]);
+    const b = map.containerPointToLatLng([Math.max(d.x0, d.x1), Math.min(d.y0, d.y1)]);
+    const bounds = L.latLngBounds(a, b);
+    selIds.clear();
+    getFiltered().forEach(e => { if (bounds.contains([e.lat, e.lon])) selIds.add(e.id); });
+    removeSelRect();
+    if (selIds.size) {
+      selRect = L.rectangle(bounds, { color: '#6aa5ff', weight: 1.5, dashArray: '5 5', fillOpacity: 0.06, interactive: false }).addTo(map);
+    }
+    applySelection();
+  });
+
+  document.addEventListener('keydown', ev => {
+    if (ev.key === 'Escape' && selIds.size) clearSel();
+  });
+})();
+
+// ══════════════════════════════════════════════
+// MENÜ EINKLAPPEN (Knopf oben links in der Karte)
+// ══════════════════════════════════════════════
+function toggleSidebar() {
+  const sb = document.querySelector('.sidebar');
+  const btn = document.getElementById('sb-toggle-btn');
+  sb.classList.toggle('collapsed');
+  const zu = sb.classList.contains('collapsed');
+  if (btn) { btn.textContent = zu ? '▶' : '◀'; btn.title = zu ? 'Menü einblenden' : 'Menü einklappen'; }
+  // Kartengröße nach Ende der Animation neu berechnen
+  setTimeout(() => map.invalidateSize({ pan: false }), 300);
+}
+
+(function initSidebarToggle() {
+  const ctrl = L.control({ position: 'topleft' });
+  ctrl.onAdd = () => {
+    const bar = L.DomUtil.create('div', 'leaflet-bar sb-toggle');
+    const a = L.DomUtil.create('a', '', bar);
+    a.id = 'sb-toggle-btn'; a.href = '#'; a.role = 'button';
+    a.textContent = '◀'; a.title = 'Menü einklappen';
+    L.DomEvent.on(a, 'click', e => { L.DomEvent.stop(e); toggleSidebar(); });
+    L.DomEvent.disableClickPropagation(bar);
+    return bar;
+  };
+  ctrl.addTo(map);
+})();
+
+// ══════════════════════════════════════════════
+// LEGENDE: per Griff (oben links) größer/kleiner ziehen
+// ══════════════════════════════════════════════
+(function initLegendeResize() {
+  const lg = document.getElementById('legend');
+  const griff = document.getElementById('legend-resize');
+  if (!lg || !griff) return;
+  const BASIS_BREITE = 210, MIN = 0.7, MAX = 1.9;
+  let aktiv = false;
+
+  function setzeSkala(s) {
+    s = Math.max(MIN, Math.min(MAX, s));
+    lg.style.zoom = s;
+    // nicht höher werden lassen als der sichtbare Bereich
+    const h = lg.getBoundingClientRect().height;
+    const maxH = window.innerHeight - 120;
+    if (h > maxH) { s = Math.max(MIN, s * maxH / h); lg.style.zoom = s; }
+    try { localStorage.setItem('ispk_legend_scale', String(s)); } catch (e) {}
+  }
+
+  griff.addEventListener('pointerdown', e => {
+    aktiv = true; griff.setPointerCapture(e.pointerId);
+    e.preventDefault(); e.stopPropagation();
+  });
+  griff.addEventListener('pointermove', e => {
+    if (!aktiv) return;
+    // rechte Kante ist fest verankert → sichtbare Breite = Abstand Zeiger ↔ rechte Kante
+    const sichtbareBreite = lg.getBoundingClientRect().right - e.clientX;
+    setzeSkala(sichtbareBreite / BASIS_BREITE);
+  });
+  const ende = e => { aktiv = false; try { griff.releasePointerCapture(e.pointerId); } catch (x) {} };
+  griff.addEventListener('pointerup', ende);
+  griff.addEventListener('pointercancel', ende);
+  griff.addEventListener('dblclick', () => setzeSkala(1));
+
+  try {
+    const gespeichert = parseFloat(localStorage.getItem('ispk_legend_scale'));
+    if (gespeichert) setzeSkala(gespeichert);
+  } catch (e) {}
+})();
 
 function initLegende() {
   const el = document.getElementById('legend-colors');
